@@ -8,14 +8,17 @@
 #include <QVector>
 
 #include "dpdfiumpage.h"
-#include "dpdfiumglobal.h"
+#include "dpdfiuminterface.h"
 
 class CPDF_Document;
 class CPDF_Page;
 class PageHolder;
 
-class DPdfium
+class DPdfium : public DPdfiumInterface
 {
+    Q_PLUGIN_METADATA(IID "org.deepin-project.DPdfiumInterface")
+    Q_INTERFACES(DPdfiumInterface)
+
 public:
     enum Status {
         NOT_LOADED = -1,
@@ -32,9 +35,9 @@ public:
 
     virtual ~DPdfium();
 
-    bool isValid() const;
-    QString filename() const;
-    int pageCount() const;
+    bool isValid() const Q_DECL_OVERRIDE;
+    QString filename() const Q_DECL_OVERRIDE;
+    int pageCount() const Q_DECL_OVERRIDE;
     Status status() const;
     DPdfiumPage page(int i);
 

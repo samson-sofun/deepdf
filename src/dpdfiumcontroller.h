@@ -32,7 +32,7 @@ class DPdfiumController : public QObject, public DPdfiumControlInterface
     Q_INTERFACES(DPdfiumControlInterface)
 
 public:
-    DPdfium *loadFile(QString filename, QString password = QString()) Q_DECL_OVERRIDE;
+    DPdfiumInterface *loadFile(QString filename, QString password = QString()) Q_DECL_OVERRIDE;
 
 };
 

@@ -23,7 +23,8 @@ HEADERS += \
     dannotation.h \
     dpdfiumcontrolinterface.h \
     dpdfiumcontroller.h \
-    dpdfiumdefines.h
+    dpdfiumdefines.h \
+    dpdfiuminterface.h
 
 SOURCES += \
     $$PWD/dpdfiumglobal.cpp \

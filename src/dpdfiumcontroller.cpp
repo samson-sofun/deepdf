@@ -19,10 +19,11 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "dpdfiumcontroller.h"
+
 #include "dpdfium.h"
 
-DPdfium *DPdfiumController::loadFile(QString filename, QString password)
+DPdfiumInterface *DPdfiumController::loadFile(QString filename, QString password)
 {
-    DPdfium *pdfium = new DPdfium(filename, password);
+    DPdfiumInterface *pdfium = new DPdfium(filename, password);
     return pdfium;
 }
