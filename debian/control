@@ -1,0 +1,21 @@
+Source: deepin-pdfium
+Section: libs
+Priority: optional
+Maintainer: deepin
+Build-Depends: debhelper (>= 11), qtbase5-dev, qtbase5-dev-tools, qtbase5-private-dev, qt5-qmake,qt5-default
+Standards-Version: 1.0.0
+Homepage: http://www.uniontech.com
+
+Package: deepin-libpdfium
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: PDF rendering library based on Qt and PDFium.
+
+Package: deepin-libpdfium-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: qtbase5-dev, ${misc:Depends}, qtbase5-doc
+Description: PDF rendering library based on Qt and PDFium.
+ .
+ This package includes the development headers for the pdf rending library.
