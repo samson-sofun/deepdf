@@ -14,7 +14,7 @@ class CPDF_Document;
 class CPDF_Page;
 class PageHolder;
 
-class DEEPIN_PDFIUM_EXPORT DPdfium
+class DPdfium
 {
 public:
     enum Status {

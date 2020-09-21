@@ -8,7 +8,9 @@ DEFINES += __QT__ \
 
 TEMPLATE = lib
 
-CONFIG += c++11
+CONFIG += c++11 plugin
+
+EXAMPLE_FILES = dpdfiumcontrol.json
 
 QT = core-private core gui
 
@@ -18,10 +20,14 @@ HEADERS += \
     $$PWD/dpdfiumglobal.h \
     $$PWD/dpdfium.h \
     $$PWD/dpdfiumpage.h \
-    dannotation.h
+    dannotation.h \
+    dpdfiumcontrolinterface.h \
+    dpdfiumcontroller.h \
+    dpdfiumdefines.h
 
 SOURCES += \
     $$PWD/dpdfiumglobal.cpp \
     $$PWD/dpdfium.cpp \
     $$PWD/dpdfiumpage.cpp \
-    dannotation.cpp
+    dannotation.cpp \
+    dpdfiumcontroller.cpp

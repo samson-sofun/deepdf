@@ -12,7 +12,8 @@ class CPDF_Page;
 class CPDF_TextPage;
 class CPDF_Document;
 
-class PageHolder {
+class PageHolder
+{
 public:
     QWeakPointer<CPDF_Document> m_doc;
     CPDF_Page *m_page;
@@ -22,7 +23,7 @@ public:
     ~PageHolder();
 };
 
-class DEEPIN_PDFIUM_EXPORT DPdfiumPage
+class DPdfiumPage
 {
 public:
     DPdfiumPage(const DPdfiumPage &other);

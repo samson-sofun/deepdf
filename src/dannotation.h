@@ -5,13 +5,12 @@
 
 #include <QRectF>
 
-class DEEPIN_PDFIUM_EXPORT DAnnotation
+class DAnnotation
 {
 public:
     DAnnotation();
 
-    enum AnnotationType
-    {
+    enum AnnotationType {
         IconAnnotation = 1,            ///< IconAnnotation
         HighlightAnnotation = 2,       ///< HighlightAnnotation
     };
@@ -26,14 +25,14 @@ public:
      * @brief Sets this annotation's boundary rectangle
      * @param boundary
      */
-    void setBoundary( const QRectF &boundary );
+    void setBoundary(const QRectF &boundary);
 
 };
 
 /**
  * Showing some text using an icon shown on a page.
  */
-class DEEPIN_PDFIUM_EXPORT DIconAnnotation : public DAnnotation
+class DIconAnnotation : public DAnnotation
 {
 public:
     DIconAnnotation();
