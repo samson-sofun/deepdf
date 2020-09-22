@@ -8,13 +8,12 @@
 #include <QVector>
 
 #include "dpdfiumpage.h"
-#include "dpdfiuminterface.h"
 
 class CPDF_Document;
 class CPDF_Page;
 class PageHolder;
 
-class DPdfium : public DPdfiumInterface
+class DEEPIN_PDFIUM_EXPORT DPdfium
 {
     Q_PLUGIN_METADATA(IID "org.deepin-project.DPdfiumInterface")
     Q_INTERFACES(DPdfiumInterface)
@@ -35,9 +34,9 @@ public:
 
     virtual ~DPdfium();
 
-    bool isValid() const Q_DECL_OVERRIDE;
-    QString filename() const Q_DECL_OVERRIDE;
-    int pageCount() const Q_DECL_OVERRIDE;
+    bool isValid() const;
+    QString filename() const;
+    int pageCount() const;
     Status status() const;
     DPdfiumPage page(int i);
 

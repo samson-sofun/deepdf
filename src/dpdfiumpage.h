@@ -23,7 +23,7 @@ public:
     ~PageHolder();
 };
 
-class DPdfiumPage
+class DEEPIN_PDFIUM_EXPORT DPdfiumPage
 {
 public:
     DPdfiumPage(const DPdfiumPage &other);

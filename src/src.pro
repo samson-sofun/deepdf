@@ -21,14 +21,10 @@ HEADERS += \
     $$PWD/dpdfium.h \
     $$PWD/dpdfiumpage.h \
     dannotation.h \
-    dpdfiumcontrolinterface.h \
-    dpdfiumcontroller.h \
-    dpdfiumdefines.h \
-    dpdfiuminterface.h
+    dpdfiumdefines.h
 
 SOURCES += \
     $$PWD/dpdfiumglobal.cpp \
     $$PWD/dpdfium.cpp \
     $$PWD/dpdfiumpage.cpp \
-    dannotation.cpp \
-    dpdfiumcontroller.cpp
+    dannotation.cpp

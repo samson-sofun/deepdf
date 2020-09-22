@@ -5,7 +5,7 @@
 
 #include <QRectF>
 
-class DAnnotation
+class DEEPIN_PDFIUM_EXPORT DAnnotation
 {
 public:
     DAnnotation();
