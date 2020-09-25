@@ -7,55 +7,53 @@
 #ifndef CORE_FPDFAPI_RENDER_CPDF_IMAGECACHEENTRY_H_
 #define CORE_FPDFAPI_RENDER_CPDF_IMAGECACHEENTRY_H_
 
-#include <memory>
-
+#include "core/fpdfapi/page/cpdf_dib.h"
 #include "core/fxcrt/fx_system.h"
+#include "core/fxcrt/retain_ptr.h"
+#include "core/fxcrt/unowned_ptr.h"
 
-class CFX_DIBitmap;
-class CFX_DIBSource;
 class CPDF_Dictionary;
 class CPDF_Document;
+class CPDF_Image;
 class CPDF_RenderStatus;
-class CPDF_Stream;
-class IFX_Pause;
+class PauseIndicatorIface;
 
 class CPDF_ImageCacheEntry {
  public:
-  CPDF_ImageCacheEntry(CPDF_Document* pDoc, CPDF_Stream* pStream);
+  CPDF_ImageCacheEntry(CPDF_Document* pDoc,
+                       const RetainPtr<CPDF_Image>& pImage);
   ~CPDF_ImageCacheEntry();
 
-  void Reset(const CFX_DIBitmap* pBitmap);
+  void Reset();
   uint32_t EstimateSize() const { return m_dwCacheSize; }
   uint32_t GetTimeCount() const { return m_dwTimeCount; }
-  CPDF_Stream* GetStream() const { return m_pStream; }
+  CPDF_Image* GetImage() const { return m_pImage.Get(); }
 
-  int StartGetCachedBitmap(CPDF_Dictionary* pFormResources,
-                           CPDF_Dictionary* pPageResources,
-                           bool bStdCS,
-                           uint32_t GroupFamily,
-                           bool bLoadMask,
-                           CPDF_RenderStatus* pRenderStatus,
-                           int32_t downsampleWidth,
-                           int32_t downsampleHeight);
-  int Continue(IFX_Pause* pPause);
-  CFX_DIBSource* DetachBitmap();
-  CFX_DIBSource* DetachMask();
+  CPDF_DIB::LoadState StartGetCachedBitmap(
+      const CPDF_Dictionary* pPageResources,
+      const CPDF_RenderStatus* pRenderStatus,
+      bool bStdCS);
 
-  int m_dwTimeCount;
-  uint32_t m_MatteColor;
+  // Returns whether to Continue() or not.
+  bool Continue(PauseIndicatorIface* pPause, CPDF_RenderStatus* pRenderStatus);
+
+  RetainPtr<CFX_DIBBase> DetachBitmap();
+  RetainPtr<CFX_DIBBase> DetachMask();
+
+  int m_dwTimeCount = 0;
+  uint32_t m_MatteColor = 0;
 
  private:
-  void ContinueGetCachedBitmap();
+  void ContinueGetCachedBitmap(const CPDF_RenderStatus* pRenderStatus);
   void CalcSize();
 
-  CPDF_RenderStatus* m_pRenderStatus;
-  CPDF_Document* m_pDocument;
-  CPDF_Stream* m_pStream;
-  CFX_DIBSource* m_pCurBitmap;
-  CFX_DIBSource* m_pCurMask;
-  std::unique_ptr<CFX_DIBSource> m_pCachedBitmap;
-  std::unique_ptr<CFX_DIBSource> m_pCachedMask;
-  uint32_t m_dwCacheSize;
+  UnownedPtr<CPDF_Document> const m_pDocument;
+  RetainPtr<CPDF_Image> const m_pImage;
+  RetainPtr<CFX_DIBBase> m_pCurBitmap;
+  RetainPtr<CFX_DIBBase> m_pCurMask;
+  RetainPtr<CFX_DIBBase> m_pCachedBitmap;
+  RetainPtr<CFX_DIBBase> m_pCachedMask;
+  uint32_t m_dwCacheSize = 0;
 };
 
 #endif  // CORE_FPDFAPI_RENDER_CPDF_IMAGECACHEENTRY_H_

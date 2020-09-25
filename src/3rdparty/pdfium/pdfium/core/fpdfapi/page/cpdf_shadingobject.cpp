@@ -6,28 +6,30 @@
 
 #include "core/fpdfapi/page/cpdf_shadingobject.h"
 
-#include "core/fpdfapi/page/cpdf_docpagedata.h"
 #include "core/fpdfapi/page/cpdf_shadingpattern.h"
-#include "core/fpdfapi/parser/cpdf_document.h"
 
-CPDF_ShadingObject::CPDF_ShadingObject() : m_pShading(nullptr) {}
+CPDF_ShadingObject::CPDF_ShadingObject(int32_t content_stream,
+                                       CPDF_ShadingPattern* pattern,
+                                       const CFX_Matrix& matrix)
+    : CPDF_PageObject(content_stream), m_pShading(pattern), m_Matrix(matrix) {}
 
-CPDF_ShadingObject::~CPDF_ShadingObject() {}
+CPDF_ShadingObject::~CPDF_ShadingObject() = default;
 
 CPDF_PageObject::Type CPDF_ShadingObject::GetType() const {
   return SHADING;
 }
 
 void CPDF_ShadingObject::Transform(const CFX_Matrix& matrix) {
-  if (m_ClipPath)
+  if (m_ClipPath.HasRef())
     m_ClipPath.Transform(matrix);
 
   m_Matrix.Concat(matrix);
-  if (m_ClipPath) {
+  if (m_ClipPath.HasRef()) {
     CalcBoundingBox();
-  } else {
-    matrix.TransformRect(m_Left, m_Right, m_Top, m_Bottom);
+    return;
   }
+
+  SetRect(matrix.TransformRect(GetRect()));
 }
 
 bool CPDF_ShadingObject::IsShading() const {
@@ -43,11 +45,7 @@ const CPDF_ShadingObject* CPDF_ShadingObject::AsShading() const {
 }
 
 void CPDF_ShadingObject::CalcBoundingBox() {
-  if (!m_ClipPath)
+  if (!m_ClipPath.HasRef())
     return;
-  CFX_FloatRect rect = m_ClipPath.GetClipBox();
-  m_Left = rect.left;
-  m_Bottom = rect.bottom;
-  m_Right = rect.right;
-  m_Top = rect.top;
+  SetRect(m_ClipPath.GetClipBox());
 }

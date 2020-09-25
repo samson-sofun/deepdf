@@ -7,30 +7,32 @@
 #ifndef CORE_FPDFAPI_PARSER_CPDF_BOOLEAN_H_
 #define CORE_FPDFAPI_PARSER_CPDF_BOOLEAN_H_
 
-#include <memory>
-
 #include "core/fpdfapi/parser/cpdf_object.h"
 #include "core/fxcrt/fx_string.h"
 #include "core/fxcrt/fx_system.h"
 
-class CPDF_Boolean : public CPDF_Object {
+class CPDF_Boolean final : public CPDF_Object {
  public:
+  CONSTRUCT_VIA_MAKE_RETAIN;
+
+  // CPDF_Object:
+  Type GetType() const override;
+  RetainPtr<CPDF_Object> Clone() const override;
+  ByteString GetString() const override;
+  int GetInteger() const override;
+  void SetString(const ByteString& str) override;
+  bool IsBoolean() const override;
+  CPDF_Boolean* AsBoolean() override;
+  const CPDF_Boolean* AsBoolean() const override;
+  bool WriteTo(IFX_ArchiveStream* archive,
+               const CPDF_Encryptor* encryptor) const override;
+
+ private:
   CPDF_Boolean();
   explicit CPDF_Boolean(bool value);
   ~CPDF_Boolean() override;
 
-  // CPDF_Object:
-  Type GetType() const override;
-  std::unique_ptr<CPDF_Object> Clone() const override;
-  CFX_ByteString GetString() const override;
-  int GetInteger() const override;
-  void SetString(const CFX_ByteString& str) override;
-  bool IsBoolean() const override;
-  CPDF_Boolean* AsBoolean() override;
-  const CPDF_Boolean* AsBoolean() const override;
-
- protected:
-  bool m_bValue;
+  bool m_bValue = false;
 };
 
 inline CPDF_Boolean* ToBoolean(CPDF_Object* obj) {

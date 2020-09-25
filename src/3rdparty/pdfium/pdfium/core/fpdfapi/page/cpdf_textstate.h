@@ -7,14 +7,16 @@
 #ifndef CORE_FPDFAPI_PAGE_CPDF_TEXTSTATE_H_
 #define CORE_FPDFAPI_PAGE_CPDF_TEXTSTATE_H_
 
-#include "core/fxcrt/cfx_shared_copy_on_write.h"
-#include "core/fxcrt/fx_basic.h"
+#include "core/fxcrt/retain_ptr.h"
+#include "core/fxcrt/shared_copy_on_write.h"
+#include "core/fxcrt/unowned_ptr.h"
 
 class CPDF_Document;
 class CPDF_Font;
 
 // See PDF Reference 1.7, page 402, table 5.3.
 enum class TextRenderingMode {
+  MODE_UNKNOWN = -1,
   MODE_FILL = 0,
   MODE_STROKE = 1,
   MODE_FILL_STROKE = 2,
@@ -23,6 +25,7 @@ enum class TextRenderingMode {
   MODE_STROKE_CLIP = 5,
   MODE_FILL_STROKE_CLIP = 6,
   MODE_CLIP = 7,
+  MODE_LAST = MODE_CLIP,
 };
 
 class CPDF_TextState {
@@ -32,56 +35,56 @@ class CPDF_TextState {
 
   void Emplace();
 
-  CPDF_Font* GetFont() const;
-  void SetFont(CPDF_Font* pFont);
+  RetainPtr<CPDF_Font> GetFont() const;
+  void SetFont(const RetainPtr<CPDF_Font>& pFont);
 
-  FX_FLOAT GetFontSize() const;
-  void SetFontSize(FX_FLOAT size);
+  float GetFontSize() const;
+  void SetFontSize(float size);
 
-  const FX_FLOAT* GetMatrix() const;
-  FX_FLOAT* GetMutableMatrix();
+  const float* GetMatrix() const;
+  float* GetMutableMatrix();
 
-  FX_FLOAT GetCharSpace() const;
-  void SetCharSpace(FX_FLOAT sp);
+  float GetCharSpace() const;
+  void SetCharSpace(float sp);
 
-  FX_FLOAT GetWordSpace() const;
-  void SetWordSpace(FX_FLOAT sp);
+  float GetWordSpace() const;
+  void SetWordSpace(float sp);
 
-  FX_FLOAT GetFontSizeV() const;
-  FX_FLOAT GetFontSizeH() const;
-  FX_FLOAT GetBaselineAngle() const;
-  FX_FLOAT GetShearAngle() const;
+  float GetFontSizeH() const;
 
   TextRenderingMode GetTextMode() const;
   void SetTextMode(TextRenderingMode mode);
 
-  const FX_FLOAT* GetCTM() const;
-  FX_FLOAT* GetMutableCTM();
+  const float* GetCTM() const;
+  float* GetMutableCTM();
 
  private:
-  class TextData {
+  class TextData final : public Retainable {
    public:
+    CONSTRUCT_VIA_MAKE_RETAIN;
+
+    RetainPtr<TextData> Clone() const;
+
+    void SetFont(const RetainPtr<CPDF_Font>& pFont);
+    float GetFontSizeV() const;
+    float GetFontSizeH() const;
+
+    RetainPtr<CPDF_Font> m_pFont;
+    UnownedPtr<CPDF_Document> m_pDocument;
+    float m_FontSize = 1.0f;
+    float m_CharSpace = 0.0f;
+    float m_WordSpace = 0.0f;
+    TextRenderingMode m_TextMode = TextRenderingMode::MODE_FILL;
+    float m_Matrix[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+    float m_CTM[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+
+   private:
     TextData();
-    TextData(const TextData& src);
-    ~TextData();
-
-    void SetFont(CPDF_Font* pFont);
-    FX_FLOAT GetFontSizeV() const;
-    FX_FLOAT GetFontSizeH() const;
-    FX_FLOAT GetBaselineAngle() const;
-    FX_FLOAT GetShearAngle() const;
-
-    CPDF_Font* m_pFont;
-    CPDF_Document* m_pDocument;
-    FX_FLOAT m_FontSize;
-    FX_FLOAT m_CharSpace;
-    FX_FLOAT m_WordSpace;
-    TextRenderingMode m_TextMode;
-    FX_FLOAT m_Matrix[4];
-    FX_FLOAT m_CTM[4];
+    TextData(const TextData& that);
+    ~TextData() override;
   };
 
-  CFX_SharedCopyOnWrite<TextData> m_Ref;
+  SharedCopyOnWrite<TextData> m_Ref;
 };
 
 bool SetTextRenderingModeFromInt(int iMode, TextRenderingMode* mode);

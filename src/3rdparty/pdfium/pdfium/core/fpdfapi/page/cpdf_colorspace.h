@@ -7,10 +7,18 @@
 #ifndef CORE_FPDFAPI_PAGE_CPDF_COLORSPACE_H_
 #define CORE_FPDFAPI_PAGE_CPDF_COLORSPACE_H_
 
+#include <array>
 #include <memory>
+#include <set>
+#include <vector>
 
+#include "core/fpdfapi/page/cpdf_pattern.h"
 #include "core/fxcrt/fx_string.h"
 #include "core/fxcrt/fx_system.h"
+#include "core/fxcrt/observed_ptr.h"
+#include "core/fxcrt/retain_ptr.h"
+#include "core/fxcrt/unowned_ptr.h"
+#include "third_party/base/span.h"
 
 #define PDFCS_DEVICEGRAY 1
 #define PDFCS_DEVICERGB 2
@@ -27,92 +35,106 @@
 class CPDF_Array;
 class CPDF_Document;
 class CPDF_Object;
+class CPDF_PatternCS;
 
-class CPDF_ColorSpace {
+constexpr size_t kMaxPatternColorComps = 16;
+
+class PatternValue {
  public:
-  static CPDF_ColorSpace* GetStockCS(int Family);
-  static CPDF_ColorSpace* ColorspaceFromName(const CFX_ByteString& name);
-  static std::unique_ptr<CPDF_ColorSpace> Load(CPDF_Document* pDoc,
-                                               CPDF_Object* pCSObj);
+  PatternValue();
+  PatternValue(const PatternValue& that);
+  ~PatternValue();
 
-  void Release();
+  void SetComps(pdfium::span<const float> comps);
+  pdfium::span<const float> GetComps() const {
+    // TODO(tsepez): update span.h from base for implicit std::array ctor.
+    return {m_Comps.data(), m_Comps.size()};
+  }
 
-  int GetBufSize() const;
-  FX_FLOAT* CreateBuf();
-  void GetDefaultColor(FX_FLOAT* buf) const;
+  CPDF_Pattern* GetPattern() const { return m_pRetainedPattern.Get(); }
+  void SetPattern(const RetainPtr<CPDF_Pattern>& pPattern) {
+    m_pRetainedPattern = pPattern;
+  }
+
+ private:
+  RetainPtr<CPDF_Pattern> m_pRetainedPattern;
+  std::array<float, kMaxPatternColorComps> m_Comps;
+};
+
+class CPDF_ColorSpace : public Retainable, public Observable {
+ public:
+  static RetainPtr<CPDF_ColorSpace> GetStockCS(int Family);
+  static RetainPtr<CPDF_ColorSpace> ColorspaceFromName(const ByteString& name);
+  static RetainPtr<CPDF_ColorSpace> Load(CPDF_Document* pDoc,
+                                         CPDF_Object* pObj);
+  static RetainPtr<CPDF_ColorSpace> Load(
+      CPDF_Document* pDoc,
+      const CPDF_Object* pObj,
+      std::set<const CPDF_Object*>* pVisited);
+  static uint32_t ComponentsForFamily(int family);
+  static bool IsValidIccComponents(int components);
+
+  const CPDF_Array* GetArray() const { return m_pArray.Get(); }
+  CPDF_Document* GetDocument() const { return m_pDocument.Get(); }
+
+  // Should only be called if this colorspace is not a pattern.
+  std::vector<float> CreateBufAndSetDefaultColor() const;
+
   uint32_t CountComponents() const;
   int GetFamily() const { return m_Family; }
+  bool IsSpecial() const {
+    return GetFamily() == PDFCS_SEPARATION || GetFamily() == PDFCS_DEVICEN ||
+           GetFamily() == PDFCS_INDEXED || GetFamily() == PDFCS_PATTERN;
+  }
+
+  virtual bool GetRGB(const float* pBuf,
+                      float* R,
+                      float* G,
+                      float* B) const = 0;
+
   virtual void GetDefaultValue(int iComponent,
-                               FX_FLOAT& value,
-                               FX_FLOAT& min,
-                               FX_FLOAT& max) const;
-
-  bool sRGB() const;
-  virtual bool GetRGB(FX_FLOAT* pBuf,
-                      FX_FLOAT& R,
-                      FX_FLOAT& G,
-                      FX_FLOAT& B) const = 0;
-  virtual bool SetRGB(FX_FLOAT* pBuf, FX_FLOAT R, FX_FLOAT G, FX_FLOAT B) const;
-
-  bool GetCMYK(FX_FLOAT* pBuf,
-               FX_FLOAT& c,
-               FX_FLOAT& m,
-               FX_FLOAT& y,
-               FX_FLOAT& k) const;
-  bool SetCMYK(FX_FLOAT* pBuf,
-               FX_FLOAT c,
-               FX_FLOAT m,
-               FX_FLOAT y,
-               FX_FLOAT k) const;
-
+                               float* value,
+                               float* min,
+                               float* max) const;
   virtual void TranslateImageLine(uint8_t* dest_buf,
                                   const uint8_t* src_buf,
                                   int pixels,
                                   int image_width,
                                   int image_height,
-                                  bool bTransMask = false) const;
-
-  CPDF_Array*& GetArray() { return m_pArray; }
-  virtual CPDF_ColorSpace* GetBaseCS() const;
-
+                                  bool bTransMask) const;
   virtual void EnableStdConversion(bool bEnabled);
+  virtual bool IsNormal() const;
 
-  CPDF_Document* const m_pDocument;
+  // Returns |this| as a CPDF_PatternCS* if |this| is a pattern.
+  virtual CPDF_PatternCS* AsPatternCS();
+  virtual const CPDF_PatternCS* AsPatternCS() const;
+
+  // Use instead of GetRGB() for patterns.
+  virtual bool GetPatternRGB(const PatternValue& value,
+                             float* R,
+                             float* G,
+                             float* B) const;
 
  protected:
-  CPDF_ColorSpace(CPDF_Document* pDoc, int family, uint32_t nComponents);
-  virtual ~CPDF_ColorSpace();
+  CPDF_ColorSpace(CPDF_Document* pDoc, int family);
+  ~CPDF_ColorSpace() override;
 
-  virtual bool v_Load(CPDF_Document* pDoc, CPDF_Array* pArray);
-  virtual bool v_GetCMYK(FX_FLOAT* pBuf,
-                         FX_FLOAT& c,
-                         FX_FLOAT& m,
-                         FX_FLOAT& y,
-                         FX_FLOAT& k) const;
-  virtual bool v_SetCMYK(FX_FLOAT* pBuf,
-                         FX_FLOAT c,
-                         FX_FLOAT m,
-                         FX_FLOAT y,
-                         FX_FLOAT k) const;
+  // Returns the number of components, or 0 on failure.
+  virtual uint32_t v_Load(CPDF_Document* pDoc,
+                          const CPDF_Array* pArray,
+                          std::set<const CPDF_Object*>* pVisited) = 0;
 
-  int m_Family;
-  uint32_t m_nComponents;
-  CPDF_Array* m_pArray;
-  uint32_t m_dwStdConversion;
+  // Stock colorspaces are not loaded normally. This initializes their
+  // components count.
+  void SetComponentsForStockCS(uint32_t nComponents);
+
+  UnownedPtr<CPDF_Document> const m_pDocument;
+  RetainPtr<const CPDF_Array> m_pArray;
+  const int m_Family;
+  uint32_t m_dwStdConversion = 0;
+
+ private:
+  uint32_t m_nComponents = 0;
 };
-
-namespace std {
-
-// Make std::unique_ptr<CPDF_ColorSpace> call Release() rather than
-// simply deleting the object.
-template <>
-struct default_delete<CPDF_ColorSpace> {
-  void operator()(CPDF_ColorSpace* pColorSpace) const {
-    if (pColorSpace)
-      pColorSpace->Release();
-  }
-};
-
-}  // namespace std
 
 #endif  // CORE_FPDFAPI_PAGE_CPDF_COLORSPACE_H_

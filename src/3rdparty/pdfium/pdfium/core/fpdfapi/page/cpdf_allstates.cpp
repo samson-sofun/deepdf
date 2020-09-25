@@ -7,56 +7,48 @@
 #include "core/fpdfapi/page/cpdf_allstates.h"
 
 #include <algorithm>
+#include <utility>
+#include <vector>
 
+#include "core/fpdfapi/font/cpdf_font.h"
 #include "core/fpdfapi/page/cpdf_pageobjectholder.h"
 #include "core/fpdfapi/page/cpdf_streamcontentparser.h"
-#include "core/fpdfapi/page/pageint.h"
 #include "core/fpdfapi/parser/cpdf_array.h"
 #include "core/fpdfapi/parser/cpdf_dictionary.h"
+#include "core/fpdfapi/parser/fpdf_parser_utility.h"
 #include "core/fxge/cfx_graphstatedata.h"
+#include "third_party/base/compiler_specific.h"
+#include "third_party/base/stl_util.h"
 
-namespace {
+CPDF_AllStates::CPDF_AllStates() = default;
 
-FX_FLOAT ClipFloat(FX_FLOAT f) {
-  return std::max(0.0f, std::min(1.0f, f));
-}
-
-}  // namespace
-
-CPDF_AllStates::CPDF_AllStates() {
-  m_TextX = m_TextY = m_TextLineX = m_TextLineY = 0;
-  m_TextLeading = 0;
-  m_TextRise = 0;
-  m_TextHorzScale = 1.0f;
-}
-
-CPDF_AllStates::~CPDF_AllStates() {}
+CPDF_AllStates::~CPDF_AllStates() = default;
 
 void CPDF_AllStates::Copy(const CPDF_AllStates& src) {
   CopyStates(src);
   m_TextMatrix = src.m_TextMatrix;
   m_ParentMatrix = src.m_ParentMatrix;
   m_CTM = src.m_CTM;
-  m_TextX = src.m_TextX;
-  m_TextY = src.m_TextY;
-  m_TextLineX = src.m_TextLineX;
-  m_TextLineY = src.m_TextLineY;
+  m_TextPos = src.m_TextPos;
+  m_TextLinePos = src.m_TextLinePos;
   m_TextLeading = src.m_TextLeading;
   m_TextRise = src.m_TextRise;
   m_TextHorzScale = src.m_TextHorzScale;
 }
 
-void CPDF_AllStates::SetLineDash(CPDF_Array* pArray,
-                                 FX_FLOAT phase,
-                                 FX_FLOAT scale) {
-  m_GraphState.SetLineDash(pArray, phase, scale);
+void CPDF_AllStates::SetLineDash(const CPDF_Array* pArray,
+                                 float phase,
+                                 float scale) {
+  std::vector<float> dashes = ReadArrayElementsToVector(pArray, pArray->size());
+  m_GraphState.SetLineDash(std::move(dashes), phase, scale);
 }
 
 void CPDF_AllStates::ProcessExtGS(CPDF_Dictionary* pGS,
                                   CPDF_StreamContentParser* pParser) {
-  for (const auto& it : *pGS) {
-    const CFX_ByteString& key_str = it.first;
-    CPDF_Object* pElement = it.second.get();
+  CPDF_DictionaryLocker locker(pGS);
+  for (const auto& it : locker) {
+    const ByteString& key_str = it.first;
+    CPDF_Object* pElement = it.second.Get();
     CPDF_Object* pObject = pElement ? pElement->GetDirect() : nullptr;
     if (!pObject)
       continue;
@@ -105,6 +97,7 @@ void CPDF_AllStates::ProcessExtGS(CPDF_Dictionary* pGS,
         if (pGS->KeyExist("TR2")) {
           continue;
         }
+        FALLTHROUGH;
       case FXBSTR_ID('T', 'R', '2', 0):
         m_GeneralState.SetTR(pObject && !pObject->IsName() ? pObject : nullptr);
         break;
@@ -112,7 +105,7 @@ void CPDF_AllStates::ProcessExtGS(CPDF_Dictionary* pGS,
         CPDF_Array* pArray = pObject->AsArray();
         m_GeneralState.SetBlendMode(pArray ? pArray->GetStringAt(0)
                                            : pObject->GetString());
-        if (m_GeneralState.GetBlendType() > FXDIB_BLEND_MULTIPLY)
+        if (m_GeneralState.GetBlendType() > BlendMode::kMultiply)
           pParser->GetPageObjectHolder()->SetBackgroundAlphaNeeded(true);
         break;
       }
@@ -125,10 +118,12 @@ void CPDF_AllStates::ProcessExtGS(CPDF_Dictionary* pGS,
         }
         break;
       case FXBSTR_ID('C', 'A', 0, 0):
-        m_GeneralState.SetStrokeAlpha(ClipFloat(pObject->GetNumber()));
+        m_GeneralState.SetStrokeAlpha(
+            pdfium::clamp(pObject->GetNumber(), 0.0f, 1.0f));
         break;
       case FXBSTR_ID('c', 'a', 0, 0):
-        m_GeneralState.SetFillAlpha(ClipFloat(pObject->GetNumber()));
+        m_GeneralState.SetFillAlpha(
+            pdfium::clamp(pObject->GetNumber(), 0.0f, 1.0f));
         break;
       case FXBSTR_ID('O', 'P', 0, 0):
         m_GeneralState.SetStrokeOP(!!pObject->GetInteger());
@@ -145,6 +140,7 @@ void CPDF_AllStates::ProcessExtGS(CPDF_Dictionary* pGS,
         if (pGS->KeyExist("BG2")) {
           continue;
         }
+        FALLTHROUGH;
       case FXBSTR_ID('B', 'G', '2', 0):
         m_GeneralState.SetBG(pObject);
         break;
@@ -152,6 +148,7 @@ void CPDF_AllStates::ProcessExtGS(CPDF_Dictionary* pGS,
         if (pGS->KeyExist("UCR2")) {
           continue;
         }
+        FALLTHROUGH;
       case FXBSTR_ID('U', 'C', 'R', '2'):
         m_GeneralState.SetUCR(pObject);
         break;

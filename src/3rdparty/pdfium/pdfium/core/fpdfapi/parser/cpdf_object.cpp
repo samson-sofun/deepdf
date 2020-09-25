@@ -12,41 +12,44 @@
 #include "core/fpdfapi/parser/cpdf_dictionary.h"
 #include "core/fpdfapi/parser/cpdf_indirect_object_holder.h"
 #include "core/fpdfapi/parser/cpdf_parser.h"
-#include "core/fpdfapi/parser/fpdf_parser_decode.h"
+#include "core/fpdfapi/parser/cpdf_reference.h"
 #include "core/fxcrt/fx_string.h"
-#include "third_party/base/stl_util.h"
+#include "third_party/base/logging.h"
 
-CPDF_Object::~CPDF_Object() {}
+CPDF_Object::~CPDF_Object() = default;
 
-CPDF_Object* CPDF_Object::GetDirect() const {
-  return const_cast<CPDF_Object*>(this);
+CPDF_Object* CPDF_Object::GetDirect() {
+  return this;
 }
 
-std::unique_ptr<CPDF_Object> CPDF_Object::CloneObjectNonCyclic(
-    bool bDirect) const {
+const CPDF_Object* CPDF_Object::GetDirect() const {
+  return this;
+}
+
+RetainPtr<CPDF_Object> CPDF_Object::CloneObjectNonCyclic(bool bDirect) const {
   std::set<const CPDF_Object*> visited_objs;
   return CloneNonCyclic(bDirect, &visited_objs);
 }
 
-std::unique_ptr<CPDF_Object> CPDF_Object::CloneDirectObject() const {
+RetainPtr<CPDF_Object> CPDF_Object::CloneDirectObject() const {
   return CloneObjectNonCyclic(true);
 }
 
-std::unique_ptr<CPDF_Object> CPDF_Object::CloneNonCyclic(
+RetainPtr<CPDF_Object> CPDF_Object::CloneNonCyclic(
     bool bDirect,
     std::set<const CPDF_Object*>* pVisited) const {
   return Clone();
 }
 
-CFX_ByteString CPDF_Object::GetString() const {
-  return CFX_ByteString();
+ByteString CPDF_Object::GetString() const {
+  return ByteString();
 }
 
-CFX_WideString CPDF_Object::GetUnicodeText() const {
-  return CFX_WideString();
+WideString CPDF_Object::GetUnicodeText() const {
+  return WideString();
 }
 
-FX_FLOAT CPDF_Object::GetNumber() const {
+float CPDF_Object::GetNumber() const {
   return 0;
 }
 
@@ -54,12 +57,16 @@ int CPDF_Object::GetInteger() const {
   return 0;
 }
 
-CPDF_Dictionary* CPDF_Object::GetDict() const {
+CPDF_Dictionary* CPDF_Object::GetDict() {
   return nullptr;
 }
 
-void CPDF_Object::SetString(const CFX_ByteString& str) {
-  ASSERT(false);
+const CPDF_Dictionary* CPDF_Object::GetDict() const {
+  return nullptr;
+}
+
+void CPDF_Object::SetString(const ByteString& str) {
+  NOTREACHED();
 }
 
 bool CPDF_Object::IsArray() const {
@@ -91,6 +98,10 @@ bool CPDF_Object::IsStream() const {
 }
 
 bool CPDF_Object::IsString() const {
+  return false;
+}
+
+bool CPDF_Object::IsNull() const {
   return false;
 }
 
@@ -156,4 +167,13 @@ CPDF_String* CPDF_Object::AsString() {
 
 const CPDF_String* CPDF_Object::AsString() const {
   return nullptr;
+}
+
+RetainPtr<CPDF_Object> CPDF_Object::MakeReference(
+    CPDF_IndirectObjectHolder* holder) const {
+  if (IsInline()) {
+    NOTREACHED();
+    return nullptr;
+  }
+  return pdfium::MakeRetain<CPDF_Reference>(holder, GetObjNum());
 }

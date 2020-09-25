@@ -10,28 +10,40 @@
 #include "core/fpdfdoc/cpdf_iconfit.h"
 #include "core/fxcrt/fx_string.h"
 #include "core/fxcrt/fx_system.h"
+#include "core/fxcrt/retain_ptr.h"
 #include "core/fxge/fx_dib.h"
 
 class CPDF_Dictionary;
 class CPDF_FormControl;
 class CPDF_Stream;
 
+// Corresponds to PDF spec section 12.5.6.19 (Widget annotation TP dictionary).
+#define TEXTPOS_CAPTION 0
+#define TEXTPOS_ICON 1
+#define TEXTPOS_BELOW 2
+#define TEXTPOS_ABOVE 3
+#define TEXTPOS_RIGHT 4
+#define TEXTPOS_LEFT 5
+#define TEXTPOS_OVERLAID 6
+
 class CPDF_ApSettings {
  public:
   explicit CPDF_ApSettings(CPDF_Dictionary* pDict);
+  CPDF_ApSettings(const CPDF_ApSettings& that);
+  ~CPDF_ApSettings();
 
-  bool HasMKEntry(const CFX_ByteString& csEntry) const;
+  bool HasMKEntry(const ByteString& csEntry) const;
   int GetRotation() const;
 
   FX_ARGB GetBorderColor(int& iColorType) const {
     return GetColor(iColorType, "BC");
   }
 
-  FX_FLOAT GetOriginalBorderColor(int index) const {
+  float GetOriginalBorderColor(int index) const {
     return GetOriginalColor(index, "BC");
   }
 
-  void GetOriginalBorderColor(int& iColorType, FX_FLOAT fc[4]) const {
+  void GetOriginalBorderColor(int& iColorType, float fc[4]) const {
     GetOriginalColor(iColorType, fc, "BC");
   }
 
@@ -39,36 +51,36 @@ class CPDF_ApSettings {
     return GetColor(iColorType, "BG");
   }
 
-  FX_FLOAT GetOriginalBackgroundColor(int index) const {
+  float GetOriginalBackgroundColor(int index) const {
     return GetOriginalColor(index, "BG");
   }
 
-  void GetOriginalBackgroundColor(int& iColorType, FX_FLOAT fc[4]) const {
+  void GetOriginalBackgroundColor(int& iColorType, float fc[4]) const {
     GetOriginalColor(iColorType, fc, "BG");
   }
 
-  CFX_WideString GetNormalCaption() const { return GetCaption("CA"); }
-  CFX_WideString GetRolloverCaption() const { return GetCaption("RC"); }
-  CFX_WideString GetDownCaption() const { return GetCaption("AC"); }
+  WideString GetNormalCaption() const { return GetCaption("CA"); }
+  WideString GetRolloverCaption() const { return GetCaption("RC"); }
+  WideString GetDownCaption() const { return GetCaption("AC"); }
   CPDF_Stream* GetNormalIcon() const { return GetIcon("I"); }
   CPDF_Stream* GetRolloverIcon() const { return GetIcon("RI"); }
   CPDF_Stream* GetDownIcon() const { return GetIcon("IX"); }
   CPDF_IconFit GetIconFit() const;
+
+  // Returns one of the TEXTPOS_* values above.
   int GetTextPosition() const;
 
- private:
-  friend class CPDF_FormControl;
-
-  FX_ARGB GetColor(int& iColorType, const CFX_ByteString& csEntry) const;
-  FX_FLOAT GetOriginalColor(int index, const CFX_ByteString& csEntry) const;
+  FX_ARGB GetColor(int& iColorType, const ByteString& csEntry) const;
+  float GetOriginalColor(int index, const ByteString& csEntry) const;
   void GetOriginalColor(int& iColorType,
-                        FX_FLOAT fc[4],
-                        const CFX_ByteString& csEntry) const;
+                        float fc[4],
+                        const ByteString& csEntry) const;
 
-  CFX_WideString GetCaption(const CFX_ByteString& csEntry) const;
-  CPDF_Stream* GetIcon(const CFX_ByteString& csEntry) const;
+  WideString GetCaption(const ByteString& csEntry) const;
+  CPDF_Stream* GetIcon(const ByteString& csEntry) const;
 
-  CPDF_Dictionary* const m_pDict;
+ private:
+  RetainPtr<CPDF_Dictionary> const m_pDict;
 };
 
 #endif  // CORE_FPDFDOC_CPDF_APSETTINGS_H_

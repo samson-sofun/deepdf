@@ -6,19 +6,64 @@
 
 #include "core/fpdfdoc/cpdf_aaction.h"
 
+#include "core/fpdfapi/parser/cpdf_dictionary.h"
+#include "third_party/base/stl_util.h"
+
 namespace {
 
-const FX_CHAR* g_sAATypes[] = {"E",  "X",  "D",  "U",  "Fo", "Bl", "PO", "PC",
-                               "PV", "PI", "O",  "C",  "K",  "F",  "V",  "C",
-                               "WC", "WS", "DS", "WP", "DP", ""};
+constexpr const char* kAATypes[] = {
+    "E",   // kCursorEnter
+    "X",   // kCursorExit
+    "D",   // kButtonDown
+    "U",   // kButtonUp
+    "Fo",  // kGetFocus
+    "Bl",  // kLoseFocus
+    "PO",  // kPageOpen
+    "PC",  // kPageClose
+    "PV",  // kPageVisible
+    "PI",  // kPageInvisible
+    "O",   // kOpenPage
+    "C",   // kClosePage
+    "K",   // kKeyStroke
+    "F",   // kFormat
+    "V",   // kValidate
+    "C",   // kCalculate
+    "WC",  // kCloseDocument
+    "WS",  // kSaveDocument
+    "DS",  // kDocumentSaved
+    "WP",  // kPrintDocument
+    "DP",  // kDocumentPrinted
+};
+
+// |kAATypes| should have one less element than enum AActionType due to
+// |kDocumentOpen|, which is an artificial type.
+static_assert(pdfium::size(kAATypes) == CPDF_AAction::kNumberOfActions - 1,
+              "kAATypes count mismatch");
 
 }  // namespace
 
+CPDF_AAction::CPDF_AAction(const CPDF_Dictionary* pDict) : m_pDict(pDict) {}
+
+CPDF_AAction::CPDF_AAction(const CPDF_AAction& that) = default;
+
+CPDF_AAction::~CPDF_AAction() = default;
+
 bool CPDF_AAction::ActionExist(AActionType eType) const {
-  return m_pDict && m_pDict->KeyExist(g_sAATypes[eType]);
+  return m_pDict && m_pDict->KeyExist(kAATypes[eType]);
 }
 
 CPDF_Action CPDF_AAction::GetAction(AActionType eType) const {
-  return m_pDict ? CPDF_Action(m_pDict->GetDictFor(g_sAATypes[eType]))
-                 : CPDF_Action();
+  return CPDF_Action(m_pDict ? m_pDict->GetDictFor(kAATypes[eType]) : nullptr);
+}
+
+// static
+bool CPDF_AAction::IsUserInput(AActionType type) {
+  switch (type) {
+    case kButtonUp:
+    case kButtonDown:
+    case kKeyStroke:
+      return true;
+    default:
+      return false;
+  }
 }

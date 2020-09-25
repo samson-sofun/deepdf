@@ -9,35 +9,38 @@
 
 #include <map>
 
-#include "core/fpdfapi/page/cpdf_countedobject.h"
+#include "core/fpdfapi/parser/cpdf_document.h"
+#include "core/fxcrt/observed_ptr.h"
+#include "core/fxcrt/retain_ptr.h"
 
-class CPDF_Document;
 class CPDF_Font;
 class CPDF_Object;
 class CPDF_TransferFunc;
 class CPDF_Type3Cache;
 class CPDF_Type3Font;
 
-class CPDF_DocRenderData {
+class CPDF_DocRenderData : public CPDF_Document::RenderDataIface {
  public:
-  explicit CPDF_DocRenderData(CPDF_Document* pPDFDoc);
-  ~CPDF_DocRenderData();
+  static CPDF_DocRenderData* FromDocument(const CPDF_Document* pDoc);
 
-  CPDF_Type3Cache* GetCachedType3(CPDF_Type3Font* pFont);
-  void ReleaseCachedType3(CPDF_Type3Font* pFont);
-  CPDF_TransferFunc* GetTransferFunc(CPDF_Object* pObj);
-  void ReleaseTransferFunc(CPDF_Object* pObj);
-  void Clear(bool bRelease);
+  CPDF_DocRenderData();
+  ~CPDF_DocRenderData() override;
+
+  CPDF_DocRenderData(const CPDF_DocRenderData&) = delete;
+  CPDF_DocRenderData& operator=(const CPDF_DocRenderData&) = delete;
+
+  RetainPtr<CPDF_Type3Cache> GetCachedType3(CPDF_Type3Font* pFont);
+  RetainPtr<CPDF_TransferFunc> GetTransferFunc(const CPDF_Object* pObj);
+
+ protected:
+  // protected for use by test subclasses.
+  RetainPtr<CPDF_TransferFunc> CreateTransferFunc(
+      const CPDF_Object* pObj) const;
 
  private:
-  using CPDF_Type3CacheMap =
-      std::map<CPDF_Font*, CPDF_CountedObject<CPDF_Type3Cache>*>;
-  using CPDF_TransferFuncMap =
-      std::map<CPDF_Object*, CPDF_CountedObject<CPDF_TransferFunc>*>;
-
-  CPDF_Document* m_pPDFDoc;  // Not Owned
-  CPDF_Type3CacheMap m_Type3FaceMap;
-  CPDF_TransferFuncMap m_TransferFuncMap;
+  std::map<CPDF_Font*, ObservedPtr<CPDF_Type3Cache>> m_Type3FaceMap;
+  std::map<const CPDF_Object*, ObservedPtr<CPDF_TransferFunc>>
+      m_TransferFuncMap;
 };
 
 #endif  // CORE_FPDFAPI_RENDER_CPDF_DOCRENDERDATA_H_

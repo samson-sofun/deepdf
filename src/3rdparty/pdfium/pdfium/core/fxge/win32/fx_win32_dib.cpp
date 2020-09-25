@@ -6,54 +6,62 @@
 
 #include <windows.h>
 
+#include <vector>
+
+#include "core/fxcrt/fx_memory_wrappers.h"
 #include "core/fxcrt/fx_system.h"
 #include "core/fxge/cfx_gemodule.h"
 #include "core/fxge/win32/cfx_windowsdib.h"
 #include "core/fxge/win32/win32_int.h"
 
-CFX_ByteString CFX_WindowsDIB::GetBitmapInfo(const CFX_DIBitmap* pBitmap) {
-  CFX_ByteString result;
+ByteString CFX_WindowsDIB::GetBitmapInfo(
+    const RetainPtr<CFX_DIBitmap>& pBitmap) {
   int len = sizeof(BITMAPINFOHEADER);
-  if (pBitmap->GetBPP() == 1 || pBitmap->GetBPP() == 8) {
+  if (pBitmap->GetBPP() == 1 || pBitmap->GetBPP() == 8)
     len += sizeof(DWORD) * (int)(1 << pBitmap->GetBPP());
-  }
-  BITMAPINFOHEADER* pbmih = (BITMAPINFOHEADER*)result.GetBuffer(len);
-  FXSYS_memset(pbmih, 0, sizeof(BITMAPINFOHEADER));
-  pbmih->biSize = sizeof(BITMAPINFOHEADER);
-  pbmih->biBitCount = pBitmap->GetBPP();
-  pbmih->biCompression = BI_RGB;
-  pbmih->biHeight = -(int)pBitmap->GetHeight();
-  pbmih->biPlanes = 1;
-  pbmih->biWidth = pBitmap->GetWidth();
-  if (pBitmap->GetBPP() == 8) {
-    uint32_t* pPalette = (uint32_t*)(pbmih + 1);
-    if (pBitmap->GetPalette()) {
-      for (int i = 0; i < 256; i++) {
-        pPalette[i] = pBitmap->GetPalette()[i];
-      }
-    } else {
-      for (int i = 0; i < 256; i++) {
-        pPalette[i] = i * 0x010101;
+
+  ByteString result;
+  {
+    // Span's lifetime must end before ReleaseBuffer() below.
+    pdfium::span<char> cspan = result.GetBuffer(len);
+    BITMAPINFOHEADER* pbmih = reinterpret_cast<BITMAPINFOHEADER*>(cspan.data());
+    memset(pbmih, 0, sizeof(BITMAPINFOHEADER));
+    pbmih->biSize = sizeof(BITMAPINFOHEADER);
+    pbmih->biBitCount = pBitmap->GetBPP();
+    pbmih->biCompression = BI_RGB;
+    pbmih->biHeight = -(int)pBitmap->GetHeight();
+    pbmih->biPlanes = 1;
+    pbmih->biWidth = pBitmap->GetWidth();
+    if (pBitmap->GetBPP() == 8) {
+      uint32_t* pPalette = (uint32_t*)(pbmih + 1);
+      if (pBitmap->GetPalette()) {
+        for (int i = 0; i < 256; i++) {
+          pPalette[i] = pBitmap->GetPalette()[i];
+        }
+      } else {
+        for (int i = 0; i < 256; i++) {
+          pPalette[i] = i * 0x010101;
+        }
       }
     }
-  }
-  if (pBitmap->GetBPP() == 1) {
-    uint32_t* pPalette = (uint32_t*)(pbmih + 1);
-    if (pBitmap->GetPalette()) {
-      pPalette[0] = pBitmap->GetPalette()[0];
-      pPalette[1] = pBitmap->GetPalette()[1];
-    } else {
-      pPalette[0] = 0;
-      pPalette[1] = 0xffffff;
+    if (pBitmap->GetBPP() == 1) {
+      uint32_t* pPalette = (uint32_t*)(pbmih + 1);
+      if (pBitmap->GetPalette()) {
+        pPalette[0] = pBitmap->GetPalette()[0];
+        pPalette[1] = pBitmap->GetPalette()[1];
+      } else {
+        pPalette[0] = 0;
+        pPalette[1] = 0xffffff;
+      }
     }
   }
   result.ReleaseBuffer(len);
   return result;
 }
 
-CFX_DIBitmap* _FX_WindowsDIB_LoadFromBuf(BITMAPINFO* pbmi,
-                                         LPVOID pData,
-                                         bool bAlpha) {
+RetainPtr<CFX_DIBitmap> FX_WindowsDIB_LoadFromBuf(BITMAPINFO* pbmi,
+                                                  LPVOID pData,
+                                                  bool bAlpha) {
   int width = pbmi->bmiHeader.biWidth;
   int height = pbmi->bmiHeader.biHeight;
   BOOL bBottomUp = true;
@@ -62,48 +70,46 @@ CFX_DIBitmap* _FX_WindowsDIB_LoadFromBuf(BITMAPINFO* pbmi,
     bBottomUp = false;
   }
   int pitch = (width * pbmi->bmiHeader.biBitCount + 31) / 32 * 4;
-  CFX_DIBitmap* pBitmap = new CFX_DIBitmap;
+  auto pBitmap = pdfium::MakeRetain<CFX_DIBitmap>();
   FXDIB_Format format = bAlpha
                             ? (FXDIB_Format)(pbmi->bmiHeader.biBitCount + 0x200)
                             : (FXDIB_Format)pbmi->bmiHeader.biBitCount;
-  bool ret = pBitmap->Create(width, height, format);
-  if (!ret) {
-    delete pBitmap;
+  if (!pBitmap->Create(width, height, format))
     return nullptr;
-  }
-  FXSYS_memcpy(pBitmap->GetBuffer(), pData, pitch * height);
+
+  memcpy(pBitmap->GetBuffer(), pData, pitch * height);
   if (bBottomUp) {
-    uint8_t* temp_buf = FX_Alloc(uint8_t, pitch);
-    int top = 0, bottom = height - 1;
+    std::vector<uint8_t, FxAllocAllocator<uint8_t>> temp_buf(pitch);
+    int top = 0;
+    int bottom = height - 1;
     while (top < bottom) {
-      FXSYS_memcpy(temp_buf, pBitmap->GetBuffer() + top * pitch, pitch);
-      FXSYS_memcpy(pBitmap->GetBuffer() + top * pitch,
-                   pBitmap->GetBuffer() + bottom * pitch, pitch);
-      FXSYS_memcpy(pBitmap->GetBuffer() + bottom * pitch, temp_buf, pitch);
+      uint8_t* top_ptr = pBitmap->GetBuffer() + top * pitch;
+      uint8_t* bottom_ptr = pBitmap->GetBuffer() + bottom * pitch;
+      memcpy(temp_buf.data(), top_ptr, pitch);
+      memcpy(top_ptr, bottom_ptr, pitch);
+      memcpy(bottom_ptr, temp_buf.data(), pitch);
       top++;
       bottom--;
     }
-    FX_Free(temp_buf);
-    temp_buf = nullptr;
   }
   if (pbmi->bmiHeader.biBitCount == 1) {
-    for (int i = 0; i < 2; i++) {
-      pBitmap->SetPaletteEntry(i, ((uint32_t*)pbmi->bmiColors)[i] | 0xff000000);
-    }
+    for (int i = 0; i < 2; i++)
+      pBitmap->SetPaletteArgb(i, ((uint32_t*)pbmi->bmiColors)[i] | 0xff000000);
   } else if (pbmi->bmiHeader.biBitCount == 8) {
-    for (int i = 0; i < 256; i++) {
-      pBitmap->SetPaletteEntry(i, ((uint32_t*)pbmi->bmiColors)[i] | 0xff000000);
-    }
+    for (int i = 0; i < 256; i++)
+      pBitmap->SetPaletteArgb(i, ((uint32_t*)pbmi->bmiColors)[i] | 0xff000000);
   }
   return pBitmap;
 }
 
-CFX_DIBitmap* CFX_WindowsDIB::LoadFromBuf(BITMAPINFO* pbmi, LPVOID pData) {
-  return _FX_WindowsDIB_LoadFromBuf(pbmi, pData, false);
+RetainPtr<CFX_DIBitmap> CFX_WindowsDIB::LoadFromBuf(BITMAPINFO* pbmi,
+                                                    LPVOID pData) {
+  return FX_WindowsDIB_LoadFromBuf(pbmi, pData, false);
 }
 
-HBITMAP CFX_WindowsDIB::GetDDBitmap(const CFX_DIBitmap* pBitmap, HDC hDC) {
-  CFX_ByteString info = GetBitmapInfo(pBitmap);
+HBITMAP CFX_WindowsDIB::GetDDBitmap(const RetainPtr<CFX_DIBitmap>& pBitmap,
+                                    HDC hDC) {
+  ByteString info = GetBitmapInfo(pBitmap);
   return CreateDIBitmap(hDC, (BITMAPINFOHEADER*)info.c_str(), CBM_INIT,
                         pBitmap->GetBuffer(), (BITMAPINFO*)info.c_str(),
                         DIB_RGB_COLORS);
@@ -116,9 +122,9 @@ void GetBitmapSize(HBITMAP hBitmap, int& w, int& h) {
   h = bmp.bmHeight;
 }
 
-CFX_DIBitmap* CFX_WindowsDIB::LoadFromFile(const FX_WCHAR* filename) {
-  CWin32Platform* pPlatform =
-      (CWin32Platform*)CFX_GEModule::Get()->GetPlatformData();
+RetainPtr<CFX_DIBitmap> CFX_WindowsDIB::LoadFromFile(const wchar_t* filename) {
+  auto* pPlatform =
+      static_cast<CWin32Platform*>(CFX_GEModule::Get()->GetPlatform());
   if (pPlatform->m_GdiplusExt.IsAvailable()) {
     WINDIB_Open_Args_ args;
     args.flags = WINDIB_OPEN_PATHNAME;
@@ -131,32 +137,30 @@ CFX_DIBitmap* CFX_WindowsDIB::LoadFromFile(const FX_WCHAR* filename) {
     return nullptr;
   }
   HDC hDC = CreateCompatibleDC(nullptr);
-  int width, height;
+  int width;
+  int height;
   GetBitmapSize(hBitmap, width, height);
-  CFX_DIBitmap* pDIBitmap = new CFX_DIBitmap;
+  auto pDIBitmap = pdfium::MakeRetain<CFX_DIBitmap>();
   if (!pDIBitmap->Create(width, height, FXDIB_Rgb)) {
-    delete pDIBitmap;
     DeleteDC(hDC);
     return nullptr;
   }
-  CFX_ByteString info = GetBitmapInfo(pDIBitmap);
+  ByteString info = GetBitmapInfo(pDIBitmap);
   int ret = GetDIBits(hDC, hBitmap, 0, height, pDIBitmap->GetBuffer(),
                       (BITMAPINFO*)info.c_str(), DIB_RGB_COLORS);
-  if (!ret) {
-    delete pDIBitmap;
-    pDIBitmap = nullptr;
-  }
   DeleteDC(hDC);
+  if (!ret)
+    return nullptr;
   return pDIBitmap;
 }
 
-CFX_DIBitmap* CFX_WindowsDIB::LoadFromFile(const FX_CHAR* filename) {
-  return LoadFromFile(CFX_WideString::FromLocal(filename).c_str());
+RetainPtr<CFX_DIBitmap> CFX_WindowsDIB::LoadFromFile(const char* filename) {
+  return LoadFromFile(WideString::FromDefANSI(filename).c_str());
 }
 
-CFX_DIBitmap* CFX_WindowsDIB::LoadDIBitmap(WINDIB_Open_Args_ args) {
-  CWin32Platform* pPlatform =
-      (CWin32Platform*)CFX_GEModule::Get()->GetPlatformData();
+RetainPtr<CFX_DIBitmap> CFX_WindowsDIB::LoadDIBitmap(WINDIB_Open_Args_ args) {
+  auto* pPlatform =
+      static_cast<CWin32Platform*>(CFX_GEModule::Get()->GetPlatform());
   if (pPlatform->m_GdiplusExt.IsAvailable()) {
     return pPlatform->m_GdiplusExt.LoadDIBitmap(args);
   }
@@ -171,34 +175,33 @@ CFX_DIBitmap* CFX_WindowsDIB::LoadDIBitmap(WINDIB_Open_Args_ args) {
   HDC hDC = CreateCompatibleDC(nullptr);
   int width, height;
   GetBitmapSize(hBitmap, width, height);
-  CFX_DIBitmap* pDIBitmap = new CFX_DIBitmap;
+  auto pDIBitmap = pdfium::MakeRetain<CFX_DIBitmap>();
   if (!pDIBitmap->Create(width, height, FXDIB_Rgb)) {
-    delete pDIBitmap;
     DeleteDC(hDC);
     return nullptr;
   }
-  CFX_ByteString info = GetBitmapInfo(pDIBitmap);
+  ByteString info = GetBitmapInfo(pDIBitmap);
   int ret = GetDIBits(hDC, hBitmap, 0, height, pDIBitmap->GetBuffer(),
                       (BITMAPINFO*)info.c_str(), DIB_RGB_COLORS);
-  if (!ret) {
-    delete pDIBitmap;
-    pDIBitmap = nullptr;
-  }
   DeleteDC(hDC);
+  if (!ret)
+    return nullptr;
   return pDIBitmap;
 }
 
 CFX_WindowsDIB::CFX_WindowsDIB(HDC hDC, int width, int height) {
-  Create(width, height, FXDIB_Rgb, (uint8_t*)1);
+  Create(width, height, FXDIB_Rgb, (uint8_t*)1, 0);
   BITMAPINFOHEADER bmih;
-  FXSYS_memset(&bmih, 0, sizeof bmih);
+  memset(&bmih, 0, sizeof bmih);
   bmih.biSize = sizeof bmih;
   bmih.biBitCount = 24;
   bmih.biHeight = -height;
   bmih.biPlanes = 1;
   bmih.biWidth = width;
-  m_hBitmap = CreateDIBSection(hDC, (BITMAPINFO*)&bmih, DIB_RGB_COLORS,
-                               (LPVOID*)&m_pBuffer, nullptr, 0);
+  LPVOID pData = nullptr;
+  m_hBitmap = CreateDIBSection(hDC, (BITMAPINFO*)&bmih, DIB_RGB_COLORS, &pData,
+                               nullptr, 0);
+  m_pBuffer.Reset(static_cast<uint8_t*>(pData));
   m_hMemDC = CreateCompatibleDC(hDC);
   m_hOldBitmap = (HBITMAP)SelectObject(m_hMemDC, m_hBitmap);
 }

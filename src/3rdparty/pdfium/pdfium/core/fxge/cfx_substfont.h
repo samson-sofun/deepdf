@@ -7,23 +7,25 @@
 #ifndef CORE_FXGE_CFX_SUBSTFONT_H_
 #define CORE_FXGE_CFX_SUBSTFONT_H_
 
+#include "core/fxcrt/fx_codepage.h"
 #include "core/fxcrt/fx_string.h"
-
-#define FXFONT_SUBST_MM 0x01
-#define FXFONT_SUBST_EXACT 0x40
 
 class CFX_SubstFont {
  public:
   CFX_SubstFont();
+  ~CFX_SubstFont();
 
-  CFX_ByteString m_Family;
-  int m_Charset;
-  uint32_t m_SubstFlags;
-  int m_Weight;
-  int m_ItalicAngle;
-  bool m_bSubstCJK;
-  int m_WeightCJK;
-  bool m_bItalicCJK;
+  int GetOriginalWeight() const;
+  void UseChromeSerif();
+
+  ByteString m_Family;
+  int m_Charset = FX_CHARSET_ANSI;
+  int m_Weight = 0;
+  int m_ItalicAngle = 0;
+  int m_WeightCJK = 0;
+  bool m_bSubstCJK = false;
+  bool m_bItalicCJK = false;
+  bool m_bFlagMM = false;
 };
 
 #endif  // CORE_FXGE_CFX_SUBSTFONT_H_

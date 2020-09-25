@@ -8,32 +8,30 @@
 
 #include <utility>
 
-#include "core/fpdfapi/page/cpdf_path.h"
 #include "core/fpdfapi/page/cpdf_textobject.h"
-#include "third_party/base/stl_util.h"
 
-#define FPDF_CLIPPATH_MAX_TEXTS 1024
+CPDF_ClipPath::CPDF_ClipPath() = default;
 
-CPDF_ClipPath::CPDF_ClipPath() {}
+CPDF_ClipPath::CPDF_ClipPath(const CPDF_ClipPath& that) = default;
 
-CPDF_ClipPath::CPDF_ClipPath(const CPDF_ClipPath& that) : m_Ref(that.m_Ref) {}
+CPDF_ClipPath& CPDF_ClipPath::operator=(const CPDF_ClipPath& that) = default;
 
-CPDF_ClipPath::~CPDF_ClipPath() {}
+CPDF_ClipPath::~CPDF_ClipPath() = default;
 
-uint32_t CPDF_ClipPath::GetPathCount() const {
-  return pdfium::CollectionSize<uint32_t>(m_Ref.GetObject()->m_PathAndTypeList);
+size_t CPDF_ClipPath::GetPathCount() const {
+  return m_Ref.GetObject()->m_PathAndTypeList.size();
 }
 
 CPDF_Path CPDF_ClipPath::GetPath(size_t i) const {
   return m_Ref.GetObject()->m_PathAndTypeList[i].first;
 }
 
-uint8_t CPDF_ClipPath::GetClipType(size_t i) const {
+CFX_FillRenderOptions::FillType CPDF_ClipPath::GetClipType(size_t i) const {
   return m_Ref.GetObject()->m_PathAndTypeList[i].second;
 }
 
-uint32_t CPDF_ClipPath::GetTextCount() const {
-  return pdfium::CollectionSize<uint32_t>(m_Ref.GetObject()->m_TextList);
+size_t CPDF_ClipPath::GetTextCount() const {
+  return m_Ref.GetObject()->m_TextList.size();
 }
 
 CPDF_TextObject* CPDF_ClipPath::GetText(size_t i) const {
@@ -43,49 +41,49 @@ CPDF_TextObject* CPDF_ClipPath::GetText(size_t i) const {
 CFX_FloatRect CPDF_ClipPath::GetClipBox() const {
   CFX_FloatRect rect;
   bool bStarted = false;
-  int count = GetPathCount();
-  if (count) {
+  if (GetPathCount() > 0) {
     rect = GetPath(0).GetBoundingBox();
-    for (int i = 1; i < count; i++) {
+    for (size_t i = 1; i < GetPathCount(); ++i) {
       CFX_FloatRect path_rect = GetPath(i).GetBoundingBox();
       rect.Intersect(path_rect);
     }
     bStarted = true;
   }
-  count = GetTextCount();
-  if (count) {
-    CFX_FloatRect layer_rect;
-    bool bLayerStarted = false;
-    for (int i = 0; i < count; i++) {
-      CPDF_TextObject* pTextObj = GetText(i);
-      if (!pTextObj) {
-        if (!bStarted) {
-          rect = layer_rect;
-          bStarted = true;
-        } else {
-          rect.Intersect(layer_rect);
-        }
-        bLayerStarted = false;
+
+  CFX_FloatRect layer_rect;
+  bool bLayerStarted = false;
+  for (size_t i = 0; i < GetTextCount(); ++i) {
+    CPDF_TextObject* pTextObj = GetText(i);
+    if (pTextObj) {
+      if (bLayerStarted) {
+        layer_rect.Union(CFX_FloatRect(pTextObj->GetBBox()));
       } else {
-        if (!bLayerStarted) {
-          layer_rect = CFX_FloatRect(pTextObj->GetBBox(nullptr));
-          bLayerStarted = true;
-        } else {
-          layer_rect.Union(CFX_FloatRect(pTextObj->GetBBox(nullptr)));
-        }
+        layer_rect = CFX_FloatRect(pTextObj->GetBBox());
+        bLayerStarted = true;
       }
+    } else {
+      if (bStarted) {
+        rect.Intersect(layer_rect);
+      } else {
+        rect = layer_rect;
+        bStarted = true;
+      }
+      bLayerStarted = false;
     }
   }
   return rect;
 }
 
-void CPDF_ClipPath::AppendPath(CPDF_Path path, uint8_t type, bool bAutoMerge) {
+void CPDF_ClipPath::AppendPath(CPDF_Path path,
+                               CFX_FillRenderOptions::FillType type,
+                               bool bAutoMerge) {
   PathData* pData = m_Ref.GetPrivateCopy();
   if (!pData->m_PathAndTypeList.empty() && bAutoMerge) {
     const CPDF_Path& old_path = pData->m_PathAndTypeList.back().first;
     if (old_path.IsRect()) {
-      CFX_FloatRect old_rect(old_path.GetPointX(0), old_path.GetPointY(0),
-                             old_path.GetPointX(2), old_path.GetPointY(2));
+      CFX_PointF point0 = old_path.GetPoint(0);
+      CFX_PointF point2 = old_path.GetPoint(2);
+      CFX_FloatRect old_rect(point0.x, point0.y, point2.x, point2.y);
       CFX_FloatRect new_rect = path.GetBoundingBox();
       if (old_rect.Contains(new_rect))
         pData->m_PathAndTypeList.pop_back();
@@ -96,8 +94,9 @@ void CPDF_ClipPath::AppendPath(CPDF_Path path, uint8_t type, bool bAutoMerge) {
 
 void CPDF_ClipPath::AppendTexts(
     std::vector<std::unique_ptr<CPDF_TextObject>>* pTexts) {
+  constexpr size_t kMaxTextObjects = 1024;
   PathData* pData = m_Ref.GetPrivateCopy();
-  if (pData->m_TextList.size() + pTexts->size() <= FPDF_CLIPPATH_MAX_TEXTS) {
+  if (pData->m_TextList.size() + pTexts->size() <= kMaxTextObjects) {
     for (size_t i = 0; i < pTexts->size(); i++)
       pData->m_TextList.push_back(std::move((*pTexts)[i]));
     pData->m_TextList.push_back(nullptr);
@@ -105,17 +104,26 @@ void CPDF_ClipPath::AppendTexts(
   pTexts->clear();
 }
 
+void CPDF_ClipPath::CopyClipPath(const CPDF_ClipPath& that) {
+  if (*this == that || !that.HasRef())
+    return;
+
+  for (size_t i = 0; i < that.GetPathCount(); ++i)
+    AppendPath(that.GetPath(i), that.GetClipType(i), /*bAutoMerge=*/false);
+}
+
 void CPDF_ClipPath::Transform(const CFX_Matrix& matrix) {
   PathData* pData = m_Ref.GetPrivateCopy();
   for (auto& obj : pData->m_PathAndTypeList)
-    obj.first.Transform(&matrix);
+    obj.first.Transform(matrix);
+
   for (auto& text : pData->m_TextList) {
     if (text)
       text->Transform(matrix);
   }
 }
 
-CPDF_ClipPath::PathData::PathData() {}
+CPDF_ClipPath::PathData::PathData() = default;
 
 CPDF_ClipPath::PathData::PathData(const PathData& that) {
   m_PathAndTypeList = that.m_PathAndTypeList;
@@ -127,4 +135,8 @@ CPDF_ClipPath::PathData::PathData(const PathData& that) {
   }
 }
 
-CPDF_ClipPath::PathData::~PathData() {}
+CPDF_ClipPath::PathData::~PathData() = default;
+
+RetainPtr<CPDF_ClipPath::PathData> CPDF_ClipPath::PathData::Clone() const {
+  return pdfium::MakeRetain<CPDF_ClipPath::PathData>(*this);
+}

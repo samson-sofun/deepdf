@@ -1,10 +1,14 @@
 # module fxjs
 SOURCE_DIR = $$PWD/pdfium
 
-PRIVATE_HEADERS += \
-$$SOURCE_DIR/fxjs/fxjs_v8.h
+HEADERS += \
+    $$PWD/pdfium/fxjs/cjs_event_context_stub.h \
+    $$PWD/pdfium/fxjs/cjs_runtimestub.h \
+    $$PWD/pdfium/fxjs/cjs_event_context.h \
+    $$PWD/pdfium/fxjs/ijs_runtime.h
 
 SOURCES += \
-$$SOURCE_DIR/fxjs/fxjs_v8.cpp
-
+    $$PWD/pdfium/fxjs/cjs_event_context_stub.cpp \
+    $$PWD/pdfium/fxjs/cjs_runtimestub.cpp \
+    $$PWD/pdfium/fxjs/ijs_runtime.cpp
 

@@ -1,16 +1,8 @@
 TARGET = $$PWD/../lib/dpdf
 
-DEFINES += __QT__ \
-    OPJ_STATIC \
-    PNG_PREFIX \
-    PNG_USE_READ_MACROS \
-    BUILD_DEEPIN_PDFIUM_LIB
-
 TEMPLATE = lib
 
-CONFIG += c++11 plugin
-
-EXAMPLE_FILES = dpdfiumcontrol.json
+CONFIG += c++14
 
 QT = core-private core gui
 

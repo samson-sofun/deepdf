@@ -7,11 +7,9 @@
 #ifndef CORE_FPDFAPI_FONT_CPDF_FONTENCODING_H_
 #define CORE_FPDFAPI_FONT_CPDF_FONTENCODING_H_
 
-#include <memory>
-
-#include "core/fxcrt/cfx_string_pool_template.h"
-#include "core/fxcrt/cfx_weak_ptr.h"
 #include "core/fxcrt/fx_string.h"
+#include "core/fxcrt/string_pool_template.h"
+#include "core/fxcrt/weak_ptr.h"
 
 #define PDFFONT_ENCODING_BUILTIN 0
 #define PDFFONT_ENCODING_WINANSI 1
@@ -22,42 +20,36 @@
 #define PDFFONT_ENCODING_ZAPFDINGBATS 6
 #define PDFFONT_ENCODING_PDFDOC 7
 #define PDFFONT_ENCODING_MS_SYMBOL 8
-#define PDFFONT_ENCODING_UNICODE 9
 
-uint32_t FT_CharCodeFromUnicode(int encoding, FX_WCHAR unicode);
-FX_WCHAR FT_UnicodeFromCharCode(int encoding, uint32_t charcode);
-
-FX_WCHAR PDF_UnicodeFromAdobeName(const FX_CHAR* name);
-CFX_ByteString PDF_AdobeNameFromUnicode(FX_WCHAR unicode);
+uint32_t FT_CharCodeFromUnicode(int encoding, wchar_t unicode);
+wchar_t FT_UnicodeFromCharCode(int encoding, uint32_t charcode);
 
 const uint16_t* PDF_UnicodesForPredefinedCharSet(int encoding);
-const FX_CHAR* PDF_CharNameFromPredefinedCharSet(int encoding,
-                                                 uint8_t charcode);
+const char* PDF_CharNameFromPredefinedCharSet(int encoding, uint8_t charcode);
 
 class CPDF_Object;
 
 class CPDF_FontEncoding {
  public:
-  CPDF_FontEncoding();
+  static constexpr size_t kEncodingTableSize = 256;
+
   explicit CPDF_FontEncoding(int PredefinedEncoding);
 
-  void LoadEncoding(CPDF_Object* pEncoding);
+  bool IsIdentical(const CPDF_FontEncoding* pAnother) const;
 
-  bool IsIdentical(CPDF_FontEncoding* pAnother) const;
-
-  FX_WCHAR UnicodeFromCharCode(uint8_t charcode) const {
+  wchar_t UnicodeFromCharCode(uint8_t charcode) const {
     return m_Unicodes[charcode];
   }
-  int CharCodeFromUnicode(FX_WCHAR unicode) const;
+  int CharCodeFromUnicode(wchar_t unicode) const;
 
-  void SetUnicode(uint8_t charcode, FX_WCHAR unicode) {
+  void SetUnicode(uint8_t charcode, wchar_t unicode) {
     m_Unicodes[charcode] = unicode;
   }
 
-  std::unique_ptr<CPDF_Object> Realize(CFX_WeakPtr<CFX_ByteStringPool> pPool);
+  RetainPtr<CPDF_Object> Realize(WeakPtr<ByteStringPool> pPool) const;
 
- public:
-  FX_WCHAR m_Unicodes[256];
+ private:
+  wchar_t m_Unicodes[kEncodingTableSize];
 };
 
 #endif  // CORE_FPDFAPI_FONT_CPDF_FONTENCODING_H_

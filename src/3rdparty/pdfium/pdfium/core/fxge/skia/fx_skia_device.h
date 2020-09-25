@@ -5,36 +5,39 @@
 #ifndef CORE_FXGE_SKIA_FX_SKIA_DEVICE_H_
 #define CORE_FXGE_SKIA_FX_SKIA_DEVICE_H_
 
-#if defined _SKIA_SUPPORT_ || defined _SKIA_SUPPORT_PATHS_
+#if defined(_SKIA_SUPPORT_) || defined(_SKIA_SUPPORT_PATHS_)
 
 #include <memory>
 #include <vector>
 
+#include "core/fxge/cfx_fillrenderoptions.h"
 #include "core/fxge/cfx_pathdata.h"
-#include "core/fxge/ifx_renderdevicedriver.h"
+#include "core/fxge/renderdevicedriver_iface.h"
 
+class CFX_ClipRgn;
 class SkCanvas;
 class SkMatrix;
 class SkPaint;
 class SkPath;
 class SkPictureRecorder;
 class SkiaState;
-struct FXTEXT_CHARPOS;
+class TextCharPos;
 struct SkIRect;
 
-class CFX_SkiaDeviceDriver : public IFX_RenderDeviceDriver {
+class CFX_SkiaDeviceDriver final : public RenderDeviceDriverIface {
  public:
-  CFX_SkiaDeviceDriver(CFX_DIBitmap* pBitmap,
+  CFX_SkiaDeviceDriver(const RetainPtr<CFX_DIBitmap>& pBitmap,
                        bool bRgbByteOrder,
-                       CFX_DIBitmap* pOriDevice,
+                       const RetainPtr<CFX_DIBitmap>& pBackdropBitmap,
                        bool bGroupKnockout);
-#ifdef _SKIA_SUPPORT_
+#if defined(_SKIA_SUPPORT_)
   explicit CFX_SkiaDeviceDriver(SkPictureRecorder* recorder);
   CFX_SkiaDeviceDriver(int size_x, int size_y);
 #endif
   ~CFX_SkiaDeviceDriver() override;
 
   /** Options */
+  DeviceType GetDeviceType() const override;
   int GetDeviceCaps(int caps_id) const override;
 
   /** Save and restore all graphic states */
@@ -43,14 +46,15 @@ class CFX_SkiaDeviceDriver : public IFX_RenderDeviceDriver {
 
   /** Set clipping path using filled region */
   bool SetClip_PathFill(
-      const CFX_PathData* pPathData,     // path info
-      const CFX_Matrix* pObject2Device,  // optional transformation
-      int fill_mode) override;           // fill mode, WINDING or ALTERNATE
+      const CFX_PathData* pPathData,              // path info
+      const CFX_Matrix* pObject2Device,           // optional transformation
+      const CFX_FillRenderOptions& fill_options)  // fill options
+      override;
 
   /** Set clipping path using stroked region */
   bool SetClip_PathStroke(
       const CFX_PathData* pPathData,     // path info
-      const CFX_Matrix* pObject2Device,  // optional transformation
+      const CFX_Matrix* pObject2Device,  // required transformation
       const CFX_GraphStateData*
           pGraphState)  // graphic state, for pen attributes
       override;
@@ -61,81 +65,83 @@ class CFX_SkiaDeviceDriver : public IFX_RenderDeviceDriver {
                 const CFX_GraphStateData* pGraphState,
                 uint32_t fill_color,
                 uint32_t stroke_color,
-                int fill_mode,
-                int blend_type) override;
+                const CFX_FillRenderOptions& fill_options,
+                BlendMode blend_type) override;
 
-  bool FillRectWithBlend(const FX_RECT* pRect,
+  bool FillRectWithBlend(const FX_RECT& rect,
                          uint32_t fill_color,
-                         int blend_type) override;
+                         BlendMode blend_type) override;
 
   /** Draw a single pixel (device dependant) line */
-  bool DrawCosmeticLine(FX_FLOAT x1,
-                        FX_FLOAT y1,
-                        FX_FLOAT x2,
-                        FX_FLOAT y2,
+  bool DrawCosmeticLine(const CFX_PointF& ptMoveTo,
+                        const CFX_PointF& ptLineTo,
                         uint32_t color,
-                        int blend_type) override;
+                        BlendMode blend_type) override;
 
   bool GetClipBox(FX_RECT* pRect) override;
 
   /** Load device buffer into a DIB */
-  bool GetDIBits(CFX_DIBitmap* pBitmap, int left, int top) override;
+  bool GetDIBits(const RetainPtr<CFX_DIBitmap>& pBitmap,
+                 int left,
+                 int top) override;
 
-  CFX_DIBitmap* GetBackDrop() override;
+  RetainPtr<CFX_DIBitmap> GetBackDrop() override;
 
-  bool SetDIBits(const CFX_DIBSource* pBitmap,
+  bool SetDIBits(const RetainPtr<CFX_DIBBase>& pBitmap,
                  uint32_t color,
-                 const FX_RECT* pSrcRect,
+                 const FX_RECT& src_rect,
                  int dest_left,
                  int dest_top,
-                 int blend_type) override;
-#ifdef _SKIA_SUPPORT_
-  bool SetBitsWithMask(const CFX_DIBSource* pBitmap,
-                       const CFX_DIBSource* pMask,
+                 BlendMode blend_type) override;
+#if defined(_SKIA_SUPPORT_)
+  bool SetBitsWithMask(const RetainPtr<CFX_DIBBase>& pBitmap,
+                       const RetainPtr<CFX_DIBBase>& pMask,
                        int dest_left,
                        int dest_top,
                        int bitmap_alpha,
-                       int blend_type) override;
+                       BlendMode blend_type) override;
 #endif
 
-#ifdef _SKIA_SUPPORT_PATHS_
+#if defined(_SKIA_SUPPORT_PATHS_)
   void SetClipMask(const FX_RECT& clipBox, const SkPath& skClipPath);
 #endif
 
-  bool StretchDIBits(const CFX_DIBSource* pBitmap,
+  bool StretchDIBits(const RetainPtr<CFX_DIBBase>& pBitmap,
                      uint32_t color,
                      int dest_left,
                      int dest_top,
                      int dest_width,
                      int dest_height,
                      const FX_RECT* pClipRect,
-                     uint32_t flags,
-                     int blend_type) override;
+                     const FXDIB_ResampleOptions& options,
+                     BlendMode blend_type) override;
 
-  bool StartDIBits(const CFX_DIBSource* pBitmap,
+  bool StartDIBits(const RetainPtr<CFX_DIBBase>& pBitmap,
                    int bitmap_alpha,
                    uint32_t color,
-                   const CFX_Matrix* pMatrix,
-                   uint32_t flags,
-                   void*& handle,
-                   int blend_type) override;
+                   const CFX_Matrix& matrix,
+                   const FXDIB_ResampleOptions& options,
+                   std::unique_ptr<CFX_ImageRenderer>* handle,
+                   BlendMode blend_type) override;
 
-  bool ContinueDIBits(void* handle, IFX_Pause* pPause) override;
+  bool ContinueDIBits(CFX_ImageRenderer* handle,
+                      PauseIndicatorIface* pPause) override;
 
-  void CancelDIBits(void* handle) override {}
-
-  bool DrawBitsWithMask(const CFX_DIBSource* pBitmap,
-                        const CFX_DIBSource* pMask,
+  bool DrawBitsWithMask(const RetainPtr<CFX_DIBBase>& pBitmap,
+                        const RetainPtr<CFX_DIBBase>& pMask,
                         int bitmap_alpha,
-                        const CFX_Matrix* pMatrix,
-                        int blend_type);
+                        const CFX_Matrix& matrix,
+                        BlendMode blend_type);
 
   bool DrawDeviceText(int nChars,
-                      const FXTEXT_CHARPOS* pCharPos,
+                      const TextCharPos* pCharPos,
                       CFX_Font* pFont,
-                      const CFX_Matrix* pObject2Device,
-                      FX_FLOAT font_size,
-                      uint32_t color) override;
+                      const CFX_Matrix& mtObject2Device,
+                      float font_size,
+                      uint32_t color,
+                      const CFX_TextRenderOptions& options) override;
+
+  int GetDriverType() const override;
 
   bool DrawShading(const CPDF_ShadingPattern* pPattern,
                    const CFX_Matrix* pMatrix,
@@ -151,28 +157,35 @@ class CFX_SkiaDeviceDriver : public IFX_RenderDeviceDriver {
   void Clear(uint32_t color);
   void Flush() override;
   SkPictureRecorder* GetRecorder() const { return m_pRecorder; }
-  void PreMultiply() { m_pBitmap->PreMultiply(); }
-  static void PreMultiply(CFX_DIBitmap* pDIBitmap);
+  void PreMultiply();
+  static void PreMultiply(const RetainPtr<CFX_DIBitmap>& pDIBitmap);
   SkCanvas* SkiaCanvas() { return m_pCanvas; }
   void DebugVerifyBitmapIsPreMultiplied() const;
   void Dump() const;
 
- private:
-  friend class SkiaState;
+  bool GetGroupKnockout() const { return m_bGroupKnockout; }
 
-  CFX_DIBitmap* m_pBitmap;
-  CFX_DIBitmap* m_pOriDevice;
+#if defined(_SKIA_SUPPORT_PATHS_)
+  const CFX_ClipRgn* clip_region() const { return m_pClipRgn.get(); }
+  const std::vector<std::unique_ptr<CFX_ClipRgn>>& stack() const {
+    return m_StateStack;
+  }
+#endif
+
+ private:
+  RetainPtr<CFX_DIBitmap> m_pBitmap;
+  RetainPtr<CFX_DIBitmap> m_pBackdropBitmap;
   SkCanvas* m_pCanvas;
   SkPictureRecorder* const m_pRecorder;
   std::unique_ptr<SkiaState> m_pCache;
-#ifdef _SKIA_SUPPORT_PATHS_
+#if defined(_SKIA_SUPPORT_PATHS_)
   std::unique_ptr<CFX_ClipRgn> m_pClipRgn;
   std::vector<std::unique_ptr<CFX_ClipRgn>> m_StateStack;
-  int m_FillFlags;
-  bool m_bRgbByteOrder;
 #endif
+  CFX_FillRenderOptions m_FillOptions;
+  bool m_bRgbByteOrder;
   bool m_bGroupKnockout;
 };
-#endif  // defined _SKIA_SUPPORT_ || defined _SKIA_SUPPORT_PATHS_
+#endif  // defined(_SKIA_SUPPORT_) || defined(_SKIA_SUPPORT_PATHS_)
 
 #endif  // CORE_FXGE_SKIA_FX_SKIA_DEVICE_H_

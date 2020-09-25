@@ -10,30 +10,29 @@
 #include <memory>
 
 #include "core/fpdfapi/parser/cpdf_indirect_object_holder.h"
-#include "core/fpdfapi/parser/cpdf_object.h"
-#include "core/fxcrt/fx_basic.h"
+#include "core/fxcrt/retain_ptr.h"
+#include "third_party/base/span.h"
 
 class CPDF_Dictionary;
+class IFX_SeekableReadStream;
 
-class CFDF_Document : public CPDF_IndirectObjectHolder {
+class CFDF_Document final : public CPDF_IndirectObjectHolder {
  public:
   static std::unique_ptr<CFDF_Document> CreateNewDoc();
-  static std::unique_ptr<CFDF_Document> ParseFile(
-      const CFX_RetainPtr<IFX_SeekableReadStream>& pFile);
-  static std::unique_ptr<CFDF_Document> ParseMemory(uint8_t* pData,
-                                                    uint32_t size);
+  static std::unique_ptr<CFDF_Document> ParseMemory(
+      pdfium::span<const uint8_t> span);
 
   CFDF_Document();
   ~CFDF_Document() override;
 
-  bool WriteBuf(CFX_ByteTextBuf& buf) const;
-  CPDF_Dictionary* GetRoot() const { return m_pRootDict; }
+  ByteString WriteToString() const;
+  CPDF_Dictionary* GetRoot() const { return m_pRootDict.Get(); }
 
- protected:
-  void ParseStream(const CFX_RetainPtr<IFX_SeekableReadStream>& pFile);
+ private:
+  void ParseStream(RetainPtr<IFX_SeekableReadStream> pFile);
 
-  CPDF_Dictionary* m_pRootDict;
-  CFX_RetainPtr<IFX_SeekableReadStream> m_pFile;
+  RetainPtr<CPDF_Dictionary> m_pRootDict;
+  RetainPtr<IFX_SeekableReadStream> m_pFile;
 };
 
 #endif  // CORE_FPDFAPI_PARSER_CFDF_DOCUMENT_H_

@@ -6,57 +6,61 @@
 
 #include "core/fpdfapi/render/cpdf_renderoptions.h"
 
-CPDF_RenderOptions::CPDF_RenderOptions()
-    : m_ColorMode(RENDER_COLOR_NORMAL),
-      m_Flags(RENDER_CLEARTYPE),
-      m_Interpolation(0),
-      m_AddFlags(0),
-      m_pOCContext(nullptr),
-      m_dwLimitCacheSize(1024 * 1024 * 100),
-      m_HalftoneLimit(-1),
-      m_bDrawAnnots(false) {}
+namespace {
 
-CPDF_RenderOptions::CPDF_RenderOptions(const CPDF_RenderOptions& rhs)
-    : m_ColorMode(rhs.m_ColorMode),
-      m_BackColor(rhs.m_BackColor),
-      m_ForeColor(rhs.m_ForeColor),
-      m_Flags(rhs.m_Flags),
-      m_Interpolation(rhs.m_Interpolation),
-      m_AddFlags(rhs.m_AddFlags),
-      m_pOCContext(rhs.m_pOCContext),
-      m_dwLimitCacheSize(rhs.m_dwLimitCacheSize),
-      m_HalftoneLimit(rhs.m_HalftoneLimit),
-      m_bDrawAnnots(rhs.m_bDrawAnnots) {}
+constexpr uint32_t kCacheSizeLimitBytes = 100 * 1024 * 1024;
+
+}  // namespace
+
+CPDF_RenderOptions::Options::Options() = default;
+
+CPDF_RenderOptions::Options::Options(const CPDF_RenderOptions::Options& rhs) =
+    default;
+
+CPDF_RenderOptions::CPDF_RenderOptions() {
+  // TODO(thestig): Make constexpr to initialize |m_Options| once C++14 is
+  // available.
+  m_Options.bClearType = true;
+}
+
+CPDF_RenderOptions::CPDF_RenderOptions(const CPDF_RenderOptions& rhs) = default;
+
+CPDF_RenderOptions::~CPDF_RenderOptions() = default;
 
 FX_ARGB CPDF_RenderOptions::TranslateColor(FX_ARGB argb) const {
-  if (m_ColorMode == RENDER_COLOR_NORMAL)
+  if (ColorModeIs(kNormal))
+    return argb;
+  if (ColorModeIs(kAlpha))
     return argb;
 
-  if (m_ColorMode == RENDER_COLOR_ALPHA)
-    return argb;
-
-  int a, r, g, b;
-  ArgbDecode(argb, a, r, g, b);
+  int a;
+  int r;
+  int g;
+  int b;
+  std::tie(a, r, g, b) = ArgbDecode(argb);
   int gray = FXRGB2GRAY(r, g, b);
-  if (m_ColorMode == RENDER_COLOR_TWOCOLOR) {
-    int color = (r - gray) * (r - gray) + (g - gray) * (g - gray) +
-                (b - gray) * (b - gray);
-    if (gray < 35 && color < 20)
-      return ArgbEncode(a, m_ForeColor);
+  return ArgbEncode(a, gray, gray, gray);
+}
 
-    if (gray > 221 && color < 20)
-      return ArgbEncode(a, m_BackColor);
+FX_ARGB CPDF_RenderOptions::TranslateObjectColor(
+    FX_ARGB argb,
+    CPDF_PageObject::Type object_type,
+    RenderType render_type) const {
+  if (!ColorModeIs(kForcedColor))
+    return TranslateColor(argb);
 
-    return argb;
+  switch (object_type) {
+    case CPDF_PageObject::Type::PATH:
+      return render_type == RenderType::kFill ? m_ColorScheme.path_fill_color
+                                              : m_ColorScheme.path_stroke_color;
+    case CPDF_PageObject::Type::TEXT:
+      return render_type == RenderType::kFill ? m_ColorScheme.text_fill_color
+                                              : m_ColorScheme.text_stroke_color;
+    default:
+      return argb;
   }
-  int fr = FXSYS_GetRValue(m_ForeColor);
-  int fg = FXSYS_GetGValue(m_ForeColor);
-  int fb = FXSYS_GetBValue(m_ForeColor);
-  int br = FXSYS_GetRValue(m_BackColor);
-  int bg = FXSYS_GetGValue(m_BackColor);
-  int bb = FXSYS_GetBValue(m_BackColor);
-  r = (br - fr) * gray / 255 + fr;
-  g = (bg - fg) * gray / 255 + fg;
-  b = (bb - fb) * gray / 255 + fb;
-  return ArgbEncode(a, r, g, b);
+}
+
+uint32_t CPDF_RenderOptions::GetCacheSizeLimit() const {
+  return kCacheSizeLimitBytes;
 }

@@ -9,18 +9,23 @@
 
 #include <windows.h>
 
+#include "core/fxcrt/fx_stream.h"
 #include "core/fxcrt/fx_system.h"
 
-class CPSOutput {
+class CPSOutput final : public IFX_RetainableWriteStream {
  public:
-  explicit CPSOutput(HDC hDC);
-  ~CPSOutput();
+  enum class OutputMode { kExtEscape, kGdiComment };
 
-  // IFX_PSOutput
-  void Release();
-  void OutputPS(const FX_CHAR* str, int len);
+  CPSOutput(HDC hDC, OutputMode mode);
+  ~CPSOutput() override;
 
-  HDC m_hDC;
+  // IFX_Writestream
+  bool WriteBlock(const void* str, size_t len) override;
+  bool WriteString(ByteStringView str) override;
+
+ private:
+  const HDC m_hDC;
+  const OutputMode m_mode;
 };
 
 #endif  // CORE_FXGE_WIN32_CPSOUTPUT_H_

@@ -17,50 +17,55 @@
 class CPDF_Array;
 class CPDF_Boolean;
 class CPDF_Dictionary;
+class CPDF_Encryptor;
+class CPDF_IndirectObjectHolder;
 class CPDF_Name;
 class CPDF_Null;
 class CPDF_Number;
 class CPDF_Reference;
 class CPDF_Stream;
 class CPDF_String;
+class IFX_ArchiveStream;
 
-class CPDF_Object {
+class CPDF_Object : public Retainable {
  public:
-  static const uint32_t kInvalidObjNum = static_cast<uint32_t>(-1);
+  static constexpr uint32_t kInvalidObjNum = static_cast<uint32_t>(-1);
   enum Type {
-    BOOLEAN = 1,
-    NUMBER,
-    STRING,
-    NAME,
-    ARRAY,
-    DICTIONARY,
-    STREAM,
-    NULLOBJ,
-    REFERENCE
+    kBoolean = 1,
+    kNumber,
+    kString,
+    kName,
+    kArray,
+    kDictionary,
+    kStream,
+    kNullobj,
+    kReference
   };
-
-  virtual ~CPDF_Object();
 
   virtual Type GetType() const = 0;
   uint32_t GetObjNum() const { return m_ObjNum; }
+  void SetObjNum(uint32_t objnum) { m_ObjNum = objnum; }
   uint32_t GetGenNum() const { return m_GenNum; }
+  void SetGenNum(uint32_t gennum) { m_GenNum = gennum; }
   bool IsInline() const { return m_ObjNum == 0; }
 
   // Create a deep copy of the object.
-  virtual std::unique_ptr<CPDF_Object> Clone() const = 0;
+  virtual RetainPtr<CPDF_Object> Clone() const = 0;
 
   // Create a deep copy of the object except any reference object be
   // copied to the object it points to directly.
-  virtual std::unique_ptr<CPDF_Object> CloneDirectObject() const;
+  virtual RetainPtr<CPDF_Object> CloneDirectObject() const;
 
-  virtual CPDF_Object* GetDirect() const;
-  virtual CFX_ByteString GetString() const;
-  virtual CFX_WideString GetUnicodeText() const;
-  virtual FX_FLOAT GetNumber() const;
+  virtual CPDF_Object* GetDirect();
+  virtual const CPDF_Object* GetDirect() const;
+  virtual ByteString GetString() const;
+  virtual WideString GetUnicodeText() const;
+  virtual float GetNumber() const;
   virtual int GetInteger() const;
-  virtual CPDF_Dictionary* GetDict() const;
+  virtual CPDF_Dictionary* GetDict();
+  virtual const CPDF_Dictionary* GetDict() const;
 
-  virtual void SetString(const CFX_ByteString& str);
+  virtual void SetString(const ByteString& str);
 
   virtual bool IsArray() const;
   virtual bool IsBoolean() const;
@@ -70,6 +75,7 @@ class CPDF_Object {
   virtual bool IsReference() const;
   virtual bool IsStream() const;
   virtual bool IsString() const;
+  virtual bool IsNull() const;
 
   virtual CPDF_Array* AsArray();
   virtual const CPDF_Array* AsArray() const;
@@ -88,17 +94,8 @@ class CPDF_Object {
   virtual CPDF_String* AsString();
   virtual const CPDF_String* AsString() const;
 
- protected:
-  friend class CPDF_Array;
-  friend class CPDF_Dictionary;
-  friend class CPDF_IndirectObjectHolder;
-  friend class CPDF_Parser;
-  friend class CPDF_Reference;
-  friend class CPDF_Stream;
-
-  CPDF_Object() : m_ObjNum(0), m_GenNum(0) {}
-
-  std::unique_ptr<CPDF_Object> CloneObjectNonCyclic(bool bDirect) const;
+  virtual bool WriteTo(IFX_ArchiveStream* archive,
+                       const CPDF_Encryptor* encryptor) const = 0;
 
   // Create a deep copy of the object with the option to either
   // copy a reference object or directly copy the object it refers to
@@ -106,23 +103,32 @@ class CPDF_Object {
   // Also check cyclic reference against |pVisited|, no copy if it is found.
   // Complex objects should implement their own CloneNonCyclic()
   // function to properly check for possible loop.
-  virtual std::unique_ptr<CPDF_Object> CloneNonCyclic(
+  virtual RetainPtr<CPDF_Object> CloneNonCyclic(
       bool bDirect,
       std::set<const CPDF_Object*>* pVisited) const;
 
-  uint32_t m_ObjNum;
-  uint32_t m_GenNum;
+  // Return a reference to itself.
+  // The object must be direct (!IsInlined).
+  virtual RetainPtr<CPDF_Object> MakeReference(
+      CPDF_IndirectObjectHolder* holder) const;
 
- private:
-  CPDF_Object(const CPDF_Object& src) {}
+ protected:
+  CPDF_Object() = default;
+  CPDF_Object(const CPDF_Object& src) = delete;
+  ~CPDF_Object() override;
+
+  RetainPtr<CPDF_Object> CloneObjectNonCyclic(bool bDirect) const;
+
+  uint32_t m_ObjNum = 0;
+  uint32_t m_GenNum = 0;
 };
 
 template <typename T>
 struct CanInternStrings {
-  static const bool value = std::is_same<T, CPDF_Array>::value ||
-                            std::is_same<T, CPDF_Dictionary>::value ||
-                            std::is_same<T, CPDF_Name>::value ||
-                            std::is_same<T, CPDF_String>::value;
+  static constexpr bool value = std::is_same<T, CPDF_Array>::value ||
+                                std::is_same<T, CPDF_Dictionary>::value ||
+                                std::is_same<T, CPDF_Name>::value ||
+                                std::is_same<T, CPDF_String>::value;
 };
 
 #endif  // CORE_FPDFAPI_PARSER_CPDF_OBJECT_H_

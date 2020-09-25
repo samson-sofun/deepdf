@@ -10,9 +10,9 @@
 #include "core/fpdfdoc/cpvt_lineinfo.h"
 #include "core/fpdfdoc/cpvt_wordplace.h"
 
-class CLine final {
+class CLine {
  public:
-  CLine();
+  explicit CLine(const CPVT_LineInfo& lineinfo);
   ~CLine();
 
   CPVT_WordPlace GetBeginWordPlace() const;

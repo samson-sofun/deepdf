@@ -7,98 +7,150 @@
 #ifndef CORE_FXCRT_FX_COORDINATES_H_
 #define CORE_FXCRT_FX_COORDINATES_H_
 
-#include "core/fxcrt/fx_basic.h"
+#include <algorithm>
 
-class CFX_Matrix;
+#include "core/fxcrt/fx_system.h"
+
+#ifndef NDEBUG
+#include <ostream>
+#endif
 
 template <class BaseType>
-class CFX_PSTemplate {
+class CFX_PTemplate {
  public:
-  CFX_PSTemplate() : x(0), y(0) {}
-  CFX_PSTemplate(BaseType new_x, BaseType new_y) : x(new_x), y(new_y) {}
-  CFX_PSTemplate(const CFX_PSTemplate& other) : x(other.x), y(other.y) {}
-  void clear() {
-    x = 0;
-    y = 0;
-  }
-  CFX_PSTemplate operator=(const CFX_PSTemplate& other) {
+  CFX_PTemplate() : x(0), y(0) {}
+  CFX_PTemplate(BaseType new_x, BaseType new_y) : x(new_x), y(new_y) {}
+  CFX_PTemplate(const CFX_PTemplate& other) : x(other.x), y(other.y) {}
+
+  CFX_PTemplate& operator=(const CFX_PTemplate& other) {
     if (this != &other) {
       x = other.x;
       y = other.y;
     }
     return *this;
   }
-  bool operator==(const CFX_PSTemplate& other) const {
+  bool operator==(const CFX_PTemplate& other) const {
     return x == other.x && y == other.y;
   }
-  bool operator!=(const CFX_PSTemplate& other) const {
+  bool operator!=(const CFX_PTemplate& other) const {
     return !(*this == other);
   }
-  CFX_PSTemplate& operator+=(const CFX_PSTemplate<BaseType>& obj) {
+  CFX_PTemplate& operator+=(const CFX_PTemplate<BaseType>& obj) {
     x += obj.x;
     y += obj.y;
     return *this;
   }
-  CFX_PSTemplate& operator-=(const CFX_PSTemplate<BaseType>& obj) {
+  CFX_PTemplate& operator-=(const CFX_PTemplate<BaseType>& obj) {
     x -= obj.x;
     y -= obj.y;
     return *this;
   }
-  CFX_PSTemplate& operator*=(BaseType factor) {
-    x *= factor;
-    y *= factor;
-    return *this;
+  CFX_PTemplate operator+(const CFX_PTemplate& other) const {
+    return CFX_PTemplate(x + other.x, y + other.y);
   }
-  CFX_PSTemplate& operator/=(BaseType divisor) {
-    x /= divisor;
-    y /= divisor;
-    return *this;
-  }
-  CFX_PSTemplate operator+(const CFX_PSTemplate& other) {
-    return CFX_PSTemplate(x + other.x, y + other.y);
-  }
-  CFX_PSTemplate operator-(const CFX_PSTemplate& other) {
-    return CFX_PSTemplate(x - other.x, y - other.y);
-  }
-  CFX_PSTemplate operator*(BaseType factor) {
-    return CFX_PSTemplate(x * factor, y * factor);
-  }
-  CFX_PSTemplate operator/(BaseType divisor) {
-    return CFX_PSTemplate(x / divisor, y / divisor);
+  CFX_PTemplate operator-(const CFX_PTemplate& other) const {
+    return CFX_PTemplate(x - other.x, y - other.y);
   }
 
   BaseType x;
   BaseType y;
 };
-typedef CFX_PSTemplate<int32_t> CFX_Point;
-typedef CFX_PSTemplate<FX_FLOAT> CFX_PointF;
-typedef CFX_PSTemplate<int32_t> CFX_Size;
-typedef CFX_PSTemplate<FX_FLOAT> CFX_SizeF;
-
-#ifdef PDF_ENABLE_XFA
-typedef CFX_ArrayTemplate<CFX_Point> CFX_Points;
-typedef CFX_ArrayTemplate<CFX_PointF> CFX_PointsF;
-#endif  // PDF_ENABLE_XFA
+using CFX_Point16 = CFX_PTemplate<int16_t>;
+using CFX_Point = CFX_PTemplate<int32_t>;
+using CFX_PointF = CFX_PTemplate<float>;
 
 template <class BaseType>
-class CFX_VTemplate : public CFX_PSTemplate<BaseType> {
+class CFX_STemplate {
  public:
-  using CFX_PSTemplate<BaseType>::x;
-  using CFX_PSTemplate<BaseType>::y;
+  CFX_STemplate() : width(0), height(0) {}
 
-  CFX_VTemplate() : CFX_PSTemplate<BaseType>() {}
+  CFX_STemplate(BaseType new_width, BaseType new_height)
+      : width(new_width), height(new_height) {}
+
+  CFX_STemplate(const CFX_STemplate& other)
+      : width(other.width), height(other.height) {}
+
+  template <typename OtherType>
+  CFX_STemplate<OtherType> As() const {
+    return CFX_STemplate<OtherType>(static_cast<OtherType>(width),
+                                    static_cast<OtherType>(height));
+  }
+
+  void clear() {
+    width = 0;
+    height = 0;
+  }
+  CFX_STemplate& operator=(const CFX_STemplate& other) {
+    if (this != &other) {
+      width = other.width;
+      height = other.height;
+    }
+    return *this;
+  }
+  bool operator==(const CFX_STemplate& other) const {
+    return width == other.width && height == other.height;
+  }
+  bool operator!=(const CFX_STemplate& other) const {
+    return !(*this == other);
+  }
+  CFX_STemplate& operator+=(const CFX_STemplate<BaseType>& obj) {
+    width += obj.width;
+    height += obj.height;
+    return *this;
+  }
+  CFX_STemplate& operator-=(const CFX_STemplate<BaseType>& obj) {
+    width -= obj.width;
+    height -= obj.height;
+    return *this;
+  }
+  CFX_STemplate& operator*=(BaseType factor) {
+    width *= factor;
+    height *= factor;
+    return *this;
+  }
+  CFX_STemplate& operator/=(BaseType divisor) {
+    width /= divisor;
+    height /= divisor;
+    return *this;
+  }
+  CFX_STemplate operator+(const CFX_STemplate& other) const {
+    return CFX_STemplate(width + other.width, height + other.height);
+  }
+  CFX_STemplate operator-(const CFX_STemplate& other) const {
+    return CFX_STemplate(width - other.width, height - other.height);
+  }
+  CFX_STemplate operator*(BaseType factor) const {
+    return CFX_STemplate(width * factor, height * factor);
+  }
+  CFX_STemplate operator/(BaseType divisor) const {
+    return CFX_STemplate(width / divisor, height / divisor);
+  }
+
+  BaseType width;
+  BaseType height;
+};
+using CFX_Size = CFX_STemplate<int32_t>;
+using CFX_SizeF = CFX_STemplate<float>;
+
+template <class BaseType>
+class CFX_VTemplate final : public CFX_PTemplate<BaseType> {
+ public:
+  using CFX_PTemplate<BaseType>::x;
+  using CFX_PTemplate<BaseType>::y;
+
+  CFX_VTemplate() : CFX_PTemplate<BaseType>() {}
   CFX_VTemplate(BaseType new_x, BaseType new_y)
-      : CFX_PSTemplate<BaseType>(new_x, new_y) {}
+      : CFX_PTemplate<BaseType>(new_x, new_y) {}
 
-  CFX_VTemplate(const CFX_VTemplate& other) : CFX_PSTemplate<BaseType>(other) {}
+  CFX_VTemplate(const CFX_VTemplate& other) : CFX_PTemplate<BaseType>(other) {}
 
-  CFX_VTemplate(const CFX_PSTemplate<BaseType>& point1,
-                const CFX_PSTemplate<BaseType>& point2)
-      : CFX_PSTemplate<BaseType>(point2.x - point1.x, point2.y - point1.y) {}
+  CFX_VTemplate(const CFX_PTemplate<BaseType>& point1,
+                const CFX_PTemplate<BaseType>& point2)
+      : CFX_PTemplate<BaseType>(point2.x - point1.x, point2.y - point1.y) {}
 
-  FX_FLOAT Length() const { return FXSYS_sqrt(x * x + y * y); }
+  float Length() const { return sqrt(x * x + y * y); }
   void Normalize() {
-    FX_FLOAT fLen = Length();
+    float fLen = Length();
     if (fLen < 0.0001f)
       return;
 
@@ -113,44 +165,34 @@ class CFX_VTemplate : public CFX_PSTemplate<BaseType> {
     x *= sx;
     y *= sy;
   }
-  void Rotate(FX_FLOAT fRadian) {
-    FX_FLOAT cosValue = FXSYS_cos(fRadian);
-    FX_FLOAT sinValue = FXSYS_sin(fRadian);
+  void Rotate(float fRadian) {
+    float cosValue = cos(fRadian);
+    float sinValue = sin(fRadian);
     x = x * cosValue - y * sinValue;
     y = x * sinValue + y * cosValue;
   }
 };
-typedef CFX_VTemplate<int32_t> CFX_Vector;
-typedef CFX_VTemplate<FX_FLOAT> CFX_VectorF;
+using CFX_Vector = CFX_VTemplate<int32_t>;
+using CFX_VectorF = CFX_VTemplate<float>;
 
 // Rectangles.
 // TODO(tsepez): Consolidate all these different rectangle classes.
 
 // LTRB rectangles (y-axis runs downwards).
+// Struct layout is compatible with win32 RECT.
 struct FX_RECT {
-  FX_RECT() : left(0), top(0), right(0), bottom(0) {}
-
+  FX_RECT() = default;
   FX_RECT(int l, int t, int r, int b) : left(l), top(t), right(r), bottom(b) {}
 
   int Width() const { return right - left; }
   int Height() const { return bottom - top; }
   bool IsEmpty() const { return right <= left || bottom <= top; }
 
-  bool Valid() const {
-    pdfium::base::CheckedNumeric<int> w = right;
-    pdfium::base::CheckedNumeric<int> h = bottom;
-    w -= left;
-    h -= top;
-    return w.IsValid() && h.IsValid();
-  }
+  bool Valid() const;
 
   void Normalize();
-
   void Intersect(const FX_RECT& src);
   void Intersect(int l, int t, int r, int b) { Intersect(FX_RECT(l, t, r, b)); }
-
-  void Union(const FX_RECT& other_rect);
-  void Union(int l, int t, int r, int b) { Union(FX_RECT(l, t, r, b)); }
 
   void Offset(int dx, int dy) {
     left += dx;
@@ -164,93 +206,151 @@ struct FX_RECT {
            bottom == src.bottom;
   }
 
-  bool Contains(const FX_RECT& other_rect) const {
-    return other_rect.left >= left && other_rect.right <= right &&
-           other_rect.top >= top && other_rect.bottom <= bottom;
-  }
-
   bool Contains(int x, int y) const {
     return x >= left && x < right && y >= top && y < bottom;
   }
 
-  int32_t left;
-  int32_t top;
-  int32_t right;
-  int32_t bottom;
+  int32_t left = 0;
+  int32_t top = 0;
+  int32_t right = 0;
+  int32_t bottom = 0;
 };
 
-// LBRT rectangles (y-axis runs upwards).
-class CFX_FloatPoint {
+// LTRB rectangles (y-axis runs upwards).
+class CFX_FloatRect {
  public:
-  CFX_FloatPoint() : x(0.0f), y(0.0f) {}
-  CFX_FloatPoint(FX_FLOAT xx, FX_FLOAT yy) : x(xx), y(yy) {}
+  constexpr CFX_FloatRect() = default;
+  constexpr CFX_FloatRect(float l, float b, float r, float t)
+      : left(l), bottom(b), right(r), top(t) {}
 
-  bool operator==(const CFX_FloatPoint& that) const {
-    return x == that.x && y == that.y;
+  explicit CFX_FloatRect(const float* pArray)
+      : CFX_FloatRect(pArray[0], pArray[1], pArray[2], pArray[3]) {}
+
+  explicit CFX_FloatRect(const FX_RECT& rect);
+
+  static CFX_FloatRect GetBBox(const CFX_PointF* pPoints, int nPoints);
+
+  void Normalize();
+
+  bool IsEmpty() const { return left >= right || bottom >= top; }
+  bool Contains(const CFX_PointF& point) const;
+  bool Contains(const CFX_FloatRect& other_rect) const;
+
+  void Intersect(const CFX_FloatRect& other_rect);
+  void Union(const CFX_FloatRect& other_rect);
+
+  // These may be better at rounding than ToFxRect() and friends.
+  //
+  // Returned rect has bounds rounded up/down such that it is contained in the
+  // original.
+  FX_RECT GetInnerRect() const;
+
+  // Returned rect has bounds rounded up/down such that the original is
+  // contained in it.
+  FX_RECT GetOuterRect() const;
+
+  // Returned rect has bounds rounded up/down such that the dimensions are
+  // rounded up and the sum of the error in the bounds is minimized.
+  FX_RECT GetClosestRect() const;
+
+  CFX_FloatRect GetCenterSquare() const;
+
+  void InitRect(const CFX_PointF& point) {
+    left = point.x;
+    right = point.x;
+    bottom = point.y;
+    top = point.y;
   }
-  bool operator!=(const CFX_FloatPoint& that) const { return !(*this == that); }
+  void UpdateRect(const CFX_PointF& point);
 
-  FX_FLOAT x;
-  FX_FLOAT y;
+  float Width() const { return right - left; }
+  float Height() const { return top - bottom; }
+  float Left() const { return left; }
+  float Bottom() const { return bottom; }
+  float Right() const { return right; }
+  float Top() const { return top; }
+
+  void Inflate(float x, float y);
+  void Inflate(float other_left,
+               float other_bottom,
+               float other_right,
+               float other_top);
+  void Inflate(const CFX_FloatRect& rt);
+
+  void Deflate(float x, float y);
+  void Deflate(float other_left,
+               float other_bottom,
+               float other_right,
+               float other_top);
+  void Deflate(const CFX_FloatRect& rt);
+
+  CFX_FloatRect GetDeflated(float x, float y) const;
+
+  void Translate(float e, float f);
+
+  void Scale(float fScale);
+  void ScaleFromCenterPoint(float fScale);
+
+  // GetInnerRect() and friends may be better at rounding than these methods.
+  // Unlike the methods above, these two blindly floor / round the LBRT values.
+  // Doing so may introduce rounding errors that are visible to users as
+  // off-by-one pixels/lines.
+  //
+  // Floors LBRT values.
+  FX_RECT ToFxRect() const;
+
+  // Rounds LBRT values.
+  FX_RECT ToRoundedFxRect() const;
+
+  float left = 0.0f;
+  float bottom = 0.0f;
+  float right = 0.0f;
+  float top = 0.0f;
 };
+
+#ifndef NDEBUG
+std::ostream& operator<<(std::ostream& os, const CFX_FloatRect& rect);
+#endif
 
 // LTWH rectangles (y-axis runs downwards).
-template <class baseType>
-class CFX_RTemplate {
+class CFX_RectF {
  public:
-  typedef CFX_PSTemplate<baseType> FXT_POINT;
-  typedef CFX_PSTemplate<baseType> FXT_SIZE;
-  typedef CFX_VTemplate<baseType> FXT_VECTOR;
-  typedef CFX_RTemplate<baseType> FXT_RECT;
-  void Set(baseType dst_left,
-           baseType dst_top,
-           baseType dst_width,
-           baseType dst_height) {
-    left = dst_left;
-    top = dst_top;
-    width = dst_width;
-    height = dst_height;
-  }
-  void Set(baseType dst_left, baseType dst_top, const FXT_SIZE& dst_size) {
-    left = dst_left;
-    top = dst_top;
-    Size(dst_size);
-  }
-  void Set(const FXT_POINT& p, baseType dst_width, baseType dst_height) {
-    TopLeft(p);
-    width = dst_width;
-    height = dst_height;
-  }
-  void Set(const FXT_POINT& p1, const FXT_POINT& p2) {
-    TopLeft(p1);
-    width = p2.x - p1.x;
-    height = p2.y - p1.y;
-    Normalize();
-  }
-  void Set(const FXT_POINT& p, const FXT_VECTOR& v) {
-    TopLeft(p);
-    width = v.x;
-    height = v.y;
-    Normalize();
-  }
-  void Reset() {
-    left = 0;
-    top = 0;
-    width = 0;
-    height = 0;
-  }
-  FXT_RECT& operator+=(const FXT_POINT& p) {
+  using PointType = CFX_PointF;
+  using SizeType = CFX_SizeF;
+
+  CFX_RectF() = default;
+  CFX_RectF(float dst_left, float dst_top, float dst_width, float dst_height)
+      : left(dst_left), top(dst_top), width(dst_width), height(dst_height) {}
+  CFX_RectF(float dst_left, float dst_top, const SizeType& dst_size)
+      : left(dst_left),
+        top(dst_top),
+        width(dst_size.width),
+        height(dst_size.height) {}
+  CFX_RectF(const PointType& p, float dst_width, float dst_height)
+      : left(p.x), top(p.y), width(dst_width), height(dst_height) {}
+  CFX_RectF(const PointType& p1, const SizeType& s2)
+      : left(p1.x), top(p1.y), width(s2.width), height(s2.height) {}
+  explicit CFX_RectF(const FX_RECT& that)
+      : left(static_cast<float>(that.left)),
+        top(static_cast<float>(that.top)),
+        width(static_cast<float>(that.Width())),
+        height(static_cast<float>(that.Height())) {}
+
+  // NOLINTNEXTLINE(runtime/explicit)
+  CFX_RectF(const CFX_RectF& other) = default;
+
+  CFX_RectF& operator+=(const PointType& p) {
     left += p.x;
     top += p.y;
     return *this;
   }
-  FXT_RECT& operator-=(const FXT_POINT& p) {
+  CFX_RectF& operator-=(const PointType& p) {
     left -= p.x;
     top -= p.y;
     return *this;
   }
-  baseType right() const { return left + width; }
-  baseType bottom() const { return top + height; }
+  float right() const { return left + width; }
+  float bottom() const { return top + height; }
   void Normalize() {
     if (width < 0) {
       left += width;
@@ -261,417 +361,227 @@ class CFX_RTemplate {
       height = -height;
     }
   }
-  void Offset(baseType dx, baseType dy) {
+  void Offset(float dx, float dy) {
     left += dx;
     top += dy;
   }
-  void Inflate(baseType x, baseType y) {
+  void Inflate(float x, float y) {
     left -= x;
     width += x * 2;
     top -= y;
     height += y * 2;
   }
-  void Inflate(const FXT_POINT& p) { Inflate(p.x, p.y); }
-  void Inflate(baseType off_left,
-               baseType off_top,
-               baseType off_right,
-               baseType off_bottom) {
+  void Inflate(const PointType& p) { Inflate(p.x, p.y); }
+  void Inflate(float off_left,
+               float off_top,
+               float off_right,
+               float off_bottom) {
     left -= off_left;
     top -= off_top;
     width += off_left + off_right;
     height += off_top + off_bottom;
   }
-  void Inflate(const FXT_RECT& rt) {
+  void Inflate(const CFX_RectF& rt) {
     Inflate(rt.left, rt.top, rt.left + rt.width, rt.top + rt.height);
   }
-  void Deflate(baseType x, baseType y) {
+  void Deflate(float x, float y) {
     left += x;
     width -= x * 2;
     top += y;
     height -= y * 2;
   }
-  void Deflate(const FXT_POINT& p) { Deflate(p.x, p.y); }
-  void Deflate(baseType off_left,
-               baseType off_top,
-               baseType off_right,
-               baseType off_bottom) {
+  void Deflate(const PointType& p) { Deflate(p.x, p.y); }
+  void Deflate(float off_left,
+               float off_top,
+               float off_right,
+               float off_bottom) {
     left += off_left;
     top += off_top;
     width -= off_left + off_right;
     height -= off_top + off_bottom;
   }
-  void Deflate(const FXT_RECT& rt) {
+  void Deflate(const CFX_RectF& rt) {
     Deflate(rt.left, rt.top, rt.top + rt.width, rt.top + rt.height);
   }
   bool IsEmpty() const { return width <= 0 || height <= 0; }
-  bool IsEmpty(FX_FLOAT fEpsilon) const {
+  bool IsEmpty(float fEpsilon) const {
     return width <= fEpsilon || height <= fEpsilon;
   }
   void Empty() { width = height = 0; }
-  bool Contains(baseType x, baseType y) const {
-    return x >= left && x < left + width && y >= top && y < top + height;
+  bool Contains(const PointType& p) const {
+    return p.x >= left && p.x < left + width && p.y >= top &&
+           p.y < top + height;
   }
-  bool Contains(const FXT_POINT& p) const { return Contains(p.x, p.y); }
-  bool Contains(const FXT_RECT& rt) const {
+  bool Contains(const CFX_RectF& rt) const {
     return rt.left >= left && rt.right() <= right() && rt.top >= top &&
            rt.bottom() <= bottom();
   }
-  baseType Width() const { return width; }
-  baseType Height() const { return height; }
-  FXT_SIZE Size() const {
-    FXT_SIZE size;
-    size.Set(width, height);
-    return size;
+  float Left() const { return left; }
+  float Top() const { return top; }
+  float Width() const { return width; }
+  float Height() const { return height; }
+  SizeType Size() const { return SizeType(width, height); }
+  PointType TopLeft() const { return PointType(left, top); }
+  PointType TopRight() const { return PointType(left + width, top); }
+  PointType BottomLeft() const { return PointType(left, top + height); }
+  PointType BottomRight() const {
+    return PointType(left + width, top + height);
   }
-  void Size(FXT_SIZE s) { width = s.x, height = s.y; }
-  FXT_POINT TopLeft() const {
-    FXT_POINT p;
-    p.x = left;
-    p.y = top;
-    return p;
+  PointType Center() const {
+    return PointType(left + width / 2, top + height / 2);
   }
-  FXT_POINT TopRight() const {
-    FXT_POINT p;
-    p.x = left + width;
-    p.y = top;
-    return p;
-  }
-  FXT_POINT BottomLeft() const {
-    FXT_POINT p;
-    p.x = left;
-    p.y = top + height;
-    return p;
-  }
-  FXT_POINT BottomRight() const {
-    FXT_POINT p;
-    p.x = left + width;
-    p.y = top + height;
-    return p;
-  }
-  void TopLeft(FXT_POINT tl) {
-    left = tl.x;
-    top = tl.y;
-  }
-  void TopRight(FXT_POINT tr) {
-    width = tr.x - left;
-    top = tr.y;
-  }
-  void BottomLeft(FXT_POINT bl) {
-    left = bl.x;
-    height = bl.y - top;
-  }
-  void BottomRight(FXT_POINT br) {
-    width = br.x - left;
-    height = br.y - top;
-  }
-  FXT_POINT Center() const {
-    FXT_POINT p;
-    p.x = left + width / 2;
-    p.y = top + height / 2;
-    return p;
-  }
-  void Union(baseType x, baseType y) {
-    baseType r = right();
-    baseType b = bottom();
-    if (left > x)
-      left = x;
-    if (r < x)
-      r = x;
-    if (top > y)
-      top = y;
-    if (b < y)
-      b = y;
+  void Union(float x, float y) {
+    float r = right();
+    float b = bottom();
+
+    left = std::min(left, x);
+    top = std::min(top, y);
+    r = std::max(r, x);
+    b = std::max(b, y);
+
     width = r - left;
     height = b - top;
   }
-  void Union(const FXT_POINT& p) { Union(p.x, p.y); }
-  void Union(const FXT_RECT& rt) {
-    baseType r = right();
-    baseType b = bottom();
-    if (left > rt.left)
-      left = rt.left;
-    if (r < rt.right())
-      r = rt.right();
-    if (top > rt.top)
-      top = rt.top;
-    if (b < rt.bottom())
-      b = rt.bottom();
+  void Union(const PointType& p) { Union(p.x, p.y); }
+  void Union(const CFX_RectF& rt) {
+    float r = right();
+    float b = bottom();
+
+    left = std::min(left, rt.left);
+    top = std::min(top, rt.top);
+    r = std::max(r, rt.right());
+    b = std::max(b, rt.bottom());
+
     width = r - left;
     height = b - top;
   }
-  void Intersect(const FXT_RECT& rt) {
-    baseType r = right();
-    baseType b = bottom();
-    if (left < rt.left)
-      left = rt.left;
-    if (r > rt.right())
-      r = rt.right();
-    if (top < rt.top)
-      top = rt.top;
-    if (b > rt.bottom())
-      b = rt.bottom();
+  void Intersect(const CFX_RectF& rt) {
+    float r = right();
+    float b = bottom();
+
+    left = std::max(left, rt.left);
+    top = std::max(top, rt.top);
+    r = std::min(r, rt.right());
+    b = std::min(b, rt.bottom());
+
     width = r - left;
     height = b - top;
   }
-  bool IntersectWith(const FXT_RECT& rt) const {
-    FXT_RECT rect = rt;
+  bool IntersectWith(const CFX_RectF& rt) const {
+    CFX_RectF rect = rt;
     rect.Intersect(*this);
     return !rect.IsEmpty();
   }
-  bool IntersectWith(const FXT_RECT& rt, FX_FLOAT fEpsilon) const {
-    FXT_RECT rect = rt;
+  bool IntersectWith(const CFX_RectF& rt, float fEpsilon) const {
+    CFX_RectF rect = rt;
     rect.Intersect(*this);
     return !rect.IsEmpty(fEpsilon);
   }
-  friend bool operator==(const FXT_RECT& rc1, const FXT_RECT& rc2) {
+  friend bool operator==(const CFX_RectF& rc1, const CFX_RectF& rc2) {
     return rc1.left == rc2.left && rc1.top == rc2.top &&
            rc1.width == rc2.width && rc1.height == rc2.height;
   }
-  friend bool operator!=(const FXT_RECT& rc1, const FXT_RECT& rc2) {
+  friend bool operator!=(const CFX_RectF& rc1, const CFX_RectF& rc2) {
     return !(rc1 == rc2);
   }
-  baseType left, top;
-  baseType width, height;
-};
-typedef CFX_RTemplate<int32_t> CFX_Rect;
-typedef CFX_RTemplate<FX_FLOAT> CFX_RectF;
 
-#ifdef PDF_ENABLE_XFA
-typedef CFX_ArrayTemplate<CFX_RectF> CFX_RectFArray;
-#endif  // PDF_ENABLE_XFA
-
-class CFX_FloatRect {
- public:
-  CFX_FloatRect() : CFX_FloatRect(0.0f, 0.0f, 0.0f, 0.0f) {}
-  CFX_FloatRect(FX_FLOAT l, FX_FLOAT b, FX_FLOAT r, FX_FLOAT t)
-      : left(l), bottom(b), right(r), top(t) {}
-
-  explicit CFX_FloatRect(const FX_FLOAT* pArray)
-      : CFX_FloatRect(pArray[0], pArray[1], pArray[2], pArray[3]) {}
-
-  explicit CFX_FloatRect(const FX_RECT& rect);
-
-  void Normalize();
-
-  void Reset() {
-    left = 0.0f;
-    right = 0.0f;
-    bottom = 0.0f;
-    top = 0.0f;
+  CFX_FloatRect ToFloatRect() const {
+    // Note, we flip top/bottom here because the CFX_FloatRect has the
+    // y-axis running in the opposite direction.
+    return CFX_FloatRect(left, top, right(), bottom());
   }
 
-  bool IsEmpty() const { return left >= right || bottom >= top; }
-  bool Contains(const CFX_FloatRect& other_rect) const;
-  bool Contains(FX_FLOAT x, FX_FLOAT y) const;
-
-  void Transform(const CFX_Matrix* pMatrix);
-  void Intersect(const CFX_FloatRect& other_rect);
-  void Union(const CFX_FloatRect& other_rect);
-
-  FX_RECT GetInnerRect() const;
+  // Returned rect has bounds rounded up/down such that the original is
+  // contained in it.
   FX_RECT GetOuterRect() const;
-  FX_RECT GetClosestRect() const;
 
-  int Substract4(CFX_FloatRect& substract_rect, CFX_FloatRect* pRects);
-
-  void InitRect(FX_FLOAT x, FX_FLOAT y) {
-    left = x;
-    right = x;
-    bottom = y;
-    top = y;
-  }
-  void UpdateRect(FX_FLOAT x, FX_FLOAT y);
-
-  FX_FLOAT Width() const { return right - left; }
-  FX_FLOAT Height() const { return top - bottom; }
-
-  void Inflate(FX_FLOAT x, FX_FLOAT y) {
-    Normalize();
-    left -= x;
-    right += x;
-    bottom -= y;
-    top += y;
-  }
-
-  void Inflate(FX_FLOAT other_left,
-               FX_FLOAT other_bottom,
-               FX_FLOAT other_right,
-               FX_FLOAT other_top) {
-    Normalize();
-    left -= other_left;
-    bottom -= other_bottom;
-    right += other_right;
-    top += other_top;
-  }
-
-  void Inflate(const CFX_FloatRect& rt) {
-    Inflate(rt.left, rt.bottom, rt.right, rt.top);
-  }
-
-  void Deflate(FX_FLOAT x, FX_FLOAT y) {
-    Normalize();
-    left += x;
-    right -= x;
-    bottom += y;
-    top -= y;
-  }
-
-  void Deflate(FX_FLOAT other_left,
-               FX_FLOAT other_bottom,
-               FX_FLOAT other_right,
-               FX_FLOAT other_top) {
-    Normalize();
-    left += other_left;
-    bottom += other_bottom;
-    right -= other_right;
-    top -= other_top;
-  }
-
-  void Deflate(const CFX_FloatRect& rt) {
-    Deflate(rt.left, rt.bottom, rt.right, rt.top);
-  }
-
-  void Translate(FX_FLOAT e, FX_FLOAT f) {
-    left += e;
-    right += e;
-    top += f;
-    bottom += f;
-  }
-
-  static CFX_FloatRect GetBBox(const CFX_PointF* pPoints, int nPoints);
-
-  FX_RECT ToFxRect() const {
-    return FX_RECT(static_cast<int32_t>(left), static_cast<int32_t>(top),
-                   static_cast<int32_t>(right), static_cast<int32_t>(bottom));
-  }
-
-  static CFX_FloatRect FromCFXRectF(const CFX_RectF& rect) {
-    return CFX_FloatRect(rect.left, rect.top, rect.right(), rect.bottom());
-  }
-
-  FX_FLOAT left;
-  FX_FLOAT bottom;
-  FX_FLOAT right;
-  FX_FLOAT top;
+  float left = 0.0f;
+  float top = 0.0f;
+  float width = 0.0f;
+  float height = 0.0f;
 };
 
+#ifndef NDEBUG
+std::ostream& operator<<(std::ostream& os, const CFX_RectF& rect);
+#endif  // NDEBUG
+
+// The matrix is of the form:
+// | a  b  0 |
+// | c  d  0 |
+// | e  f  1 |
+// See PDF spec 1.7 Section 4.2.3.
+//
 class CFX_Matrix {
  public:
-  CFX_Matrix() { SetIdentity(); }
+  CFX_Matrix() = default;
 
-  CFX_Matrix(FX_FLOAT a1,
-             FX_FLOAT b1,
-             FX_FLOAT c1,
-             FX_FLOAT d1,
-             FX_FLOAT e1,
-             FX_FLOAT f1) {
-    a = a1;
-    b = b1;
-    c = c1;
-    d = d1;
-    e = e1;
-    f = f1;
+  explicit CFX_Matrix(const float n[6])
+      : a(n[0]), b(n[1]), c(n[2]), d(n[3]), e(n[4]), f(n[5]) {}
+
+  CFX_Matrix(float a1, float b1, float c1, float d1, float e1, float f1)
+      : a(a1), b(b1), c(c1), d(d1), e(e1), f(f1) {}
+
+  CFX_Matrix(const CFX_Matrix& other) = default;
+
+  CFX_Matrix& operator=(const CFX_Matrix& other) = default;
+
+  bool operator==(const CFX_Matrix& other) const {
+    return a == other.a && b == other.b && c == other.c && d == other.d &&
+           e == other.e && f == other.f;
+  }
+  bool operator!=(const CFX_Matrix& other) const { return !(*this == other); }
+
+  CFX_Matrix operator*(const CFX_Matrix& right) const {
+    return CFX_Matrix(a * right.a + b * right.c, a * right.b + b * right.d,
+                      c * right.a + d * right.c, c * right.b + d * right.d,
+                      e * right.a + f * right.c + right.e,
+                      e * right.b + f * right.d + right.f);
+  }
+  CFX_Matrix& operator*=(const CFX_Matrix& other) {
+    *this = *this * other;
+    return *this;
   }
 
-  void Set(FX_FLOAT a,
-           FX_FLOAT b,
-           FX_FLOAT c,
-           FX_FLOAT d,
-           FX_FLOAT e,
-           FX_FLOAT f);
-  void Set(const FX_FLOAT n[6]);
+  bool IsIdentity() const { return *this == CFX_Matrix(); }
+  CFX_Matrix GetInverse() const;
 
-  void SetIdentity() {
-    a = d = 1;
-    b = c = e = f = 0;
-  }
-
-  void SetReverse(const CFX_Matrix& m);
-
-  void Concat(FX_FLOAT a,
-              FX_FLOAT b,
-              FX_FLOAT c,
-              FX_FLOAT d,
-              FX_FLOAT e,
-              FX_FLOAT f,
-              bool bPrepended = false);
-  void Concat(const CFX_Matrix& m, bool bPrepended = false);
-  void ConcatInverse(const CFX_Matrix& m, bool bPrepended = false);
-
-  bool IsIdentity() const {
-    return a == 1 && b == 0 && c == 0 && d == 1 && e == 0 && f == 0;
-  }
-
-  bool IsInvertible() const;
   bool Is90Rotated() const;
   bool IsScaled() const;
+  bool WillScale() const { return a != 1.0f || b != 0 || c != 0 || d != 1.0f; }
 
-  void Translate(FX_FLOAT x, FX_FLOAT y, bool bPrepended = false);
-  void TranslateI(int32_t x, int32_t y, bool bPrepended = false) {
-    Translate((FX_FLOAT)x, (FX_FLOAT)y, bPrepended);
+  void Concat(const CFX_Matrix& right) { *this *= right; }
+  void Translate(float x, float y);
+  void TranslatePrepend(float x, float y);
+  void Translate(int32_t x, int32_t y) {
+    Translate(static_cast<float>(x), static_cast<float>(y));
+  }
+  void TranslatePrepend(int32_t x, int32_t y) {
+    TranslatePrepend(static_cast<float>(x), static_cast<float>(y));
   }
 
-  void Scale(FX_FLOAT sx, FX_FLOAT sy, bool bPrepended = false);
-  void Rotate(FX_FLOAT fRadian, bool bPrepended = false);
-  void RotateAt(FX_FLOAT fRadian,
-                FX_FLOAT x,
-                FX_FLOAT y,
-                bool bPrepended = false);
-
-  void Shear(FX_FLOAT fAlphaRadian,
-             FX_FLOAT fBetaRadian,
-             bool bPrepended = false);
+  void Scale(float sx, float sy);
+  void Rotate(float fRadian);
 
   void MatchRect(const CFX_FloatRect& dest, const CFX_FloatRect& src);
-  FX_FLOAT GetXUnit() const;
-  FX_FLOAT GetYUnit() const;
-  void GetUnitRect(CFX_RectF& rect) const;
+
+  float GetXUnit() const;
+  float GetYUnit() const;
   CFX_FloatRect GetUnitRect() const;
 
-  FX_FLOAT GetUnitArea() const;
-  FX_FLOAT TransformXDistance(FX_FLOAT dx) const;
-  int32_t TransformXDistance(int32_t dx) const;
-  FX_FLOAT TransformYDistance(FX_FLOAT dy) const;
-  int32_t TransformYDistance(int32_t dy) const;
-  FX_FLOAT TransformDistance(FX_FLOAT dx, FX_FLOAT dy) const;
-  int32_t TransformDistance(int32_t dx, int32_t dy) const;
-  FX_FLOAT TransformDistance(FX_FLOAT distance) const;
+  float TransformXDistance(float dx) const;
+  float TransformDistance(float distance) const;
 
-  void TransformPoint(FX_FLOAT& x, FX_FLOAT& y) const;
-  void TransformPoint(int32_t& x, int32_t& y) const;
+  CFX_PointF Transform(const CFX_PointF& point) const;
 
-  void Transform(FX_FLOAT& x, FX_FLOAT& y) const { TransformPoint(x, y); }
-  void Transform(FX_FLOAT x, FX_FLOAT y, FX_FLOAT& x1, FX_FLOAT& y1) const {
-    x1 = x, y1 = y;
-    TransformPoint(x1, y1);
-  }
+  CFX_RectF TransformRect(const CFX_RectF& rect) const;
+  CFX_FloatRect TransformRect(const CFX_FloatRect& rect) const;
 
-  void TransformVector(CFX_VectorF& v) const;
-  void TransformVector(CFX_Vector& v) const;
-  void TransformRect(CFX_RectF& rect) const;
-  void TransformRect(CFX_Rect& rect) const;
-  void TransformRect(FX_FLOAT& left,
-                     FX_FLOAT& right,
-                     FX_FLOAT& top,
-                     FX_FLOAT& bottom) const;
-  void TransformRect(CFX_FloatRect& rect) const {
-    TransformRect(rect.left, rect.right, rect.top, rect.bottom);
-  }
-
-  FX_FLOAT GetA() const { return a; }
-  FX_FLOAT GetB() const { return b; }
-  FX_FLOAT GetC() const { return c; }
-  FX_FLOAT GetD() const { return d; }
-  FX_FLOAT GetE() const { return e; }
-  FX_FLOAT GetF() const { return f; }
-
- public:
-  FX_FLOAT a;
-  FX_FLOAT b;
-  FX_FLOAT c;
-  FX_FLOAT d;
-  FX_FLOAT e;
-  FX_FLOAT f;
+  float a = 1.0f;
+  float b = 0.0f;
+  float c = 0.0f;
+  float d = 1.0f;
+  float e = 0.0f;
+  float f = 0.0f;
 };
 
 #endif  // CORE_FXCRT_FX_COORDINATES_H_

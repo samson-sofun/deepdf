@@ -45,7 +45,7 @@ enum poly_base_scale_e {
     poly_base_size  = 1 << poly_base_shift,
     poly_base_mask  = poly_base_size - 1
 };
-inline int poly_coord(FX_FLOAT c)
+inline int poly_coord(float c)
 {
     return int(c * poly_base_size);
 }
@@ -219,14 +219,14 @@ public:
         m_outline.reset();
         m_status = status_initial;
     }
-    void clip_box(FX_FLOAT x1, FX_FLOAT y1, FX_FLOAT x2, FX_FLOAT y2)
+    void clip_box(float x1, float y1, float x2, float y2)
     {
         m_clip_box = rect(poly_coord(x1), poly_coord(y1),
                           poly_coord(x2), poly_coord(y2));
         m_clip_box.normalize();
         m_clipping = true;
     }
-    void add_vertex(FX_FLOAT x, FX_FLOAT y, unsigned cmd)
+    void add_vertex(float x, float y, unsigned cmd)
     {
         if(is_close(cmd)) {
             close_polygon();
@@ -338,25 +338,43 @@ public:
                 const cell_aa* cur_cell = *cells;
                 int x    = cur_cell->x;
                 int area = cur_cell->area;
-                unsigned alpha;
-                cover += cur_cell->cover;
+                bool seen_area_overflow = false;
+                bool seen_cover_overflow = false;
+                if(!safe_add(&cover, cur_cell->cover)) {
+                    break;
+                }
                 while(--num_cells) {
                     cur_cell = *++cells;
                     if(cur_cell->x != x) {
                         break;
                     }
-                    area  += cur_cell->area;
-                    cover += cur_cell->cover;
+                    if(seen_area_overflow) {
+                        continue;
+                    }
+                    if(!safe_add(&area, cur_cell->area)) {
+                        seen_area_overflow = true;
+                        continue;
+                    }
+                    if(!safe_add(&cover, cur_cell->cover)) {
+                        seen_cover_overflow = true;
+                        break;
+                    }
+                }
+                if(seen_area_overflow) {
+                    continue;
+                }
+                if(seen_cover_overflow) {
+                    break;
                 }
                 if(area) {
-                    alpha = calculate_alpha((cover << (poly_base_shift + 1)) - area, no_smooth);
+                    unsigned alpha = calculate_alpha(calculate_area(cover, poly_base_shift + 1) - area, no_smooth);
                     if(alpha) {
                         sl.add_cell(x, alpha);
                     }
                     x++;
                 }
                 if(num_cells && cur_cell->x > x) {
-                    alpha = calculate_alpha(cover << (poly_base_shift + 1), no_smooth);
+                    unsigned alpha = calculate_alpha(calculate_area(cover, poly_base_shift + 1), no_smooth);
                     if(alpha) {
                         sl.add_span(x, cur_cell->x - x, alpha);
                     }
@@ -374,8 +392,8 @@ public:
     template<class VertexSource>
     void add_path(VertexSource& vs, unsigned path_id = 0)
     {
-        FX_FLOAT x;
-        FX_FLOAT y;
+        float x;
+        float y;
         unsigned cmd;
         vs.rewind(path_id);
         while(!is_stop(cmd = vs.vertex(&x, &y))) {
@@ -385,15 +403,17 @@ public:
     template<class VertexSource>
     void add_path_transformed(VertexSource& vs, const CFX_Matrix* pMatrix, unsigned path_id = 0)
     {
-        FX_FLOAT x;
-        FX_FLOAT y;
+        float x;
+        float y;
         unsigned cmd;
         vs.rewind(path_id);
         while(!is_stop(cmd = vs.vertex(&x, &y))) {
-            if (pMatrix) {
-                pMatrix->Transform(x, y);
-            }
-            add_vertex(x, y, cmd);
+          if (pMatrix) {
+            CFX_PointF ret = pMatrix->Transform(CFX_PointF(x, y));
+            x = ret.x;
+            y = ret.y;
+          }
+          add_vertex(x, y, cmd);
         }
     }
 private:
@@ -457,6 +477,9 @@ private:
         m_prev_y = y;
     }
 private:
+    static int calculate_area(int cover, int shift);
+    static bool safe_add(int* op1, int op2);
+
     outline_aa     m_outline;
     filling_rule_e m_filling_rule;
     int            m_clipped_start_x;

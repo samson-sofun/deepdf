@@ -5,26 +5,29 @@
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
 #include "core/fxcrt/fx_bidi.h"
-#include "core/fxcrt/fx_ucd.h"
 
 #include <algorithm>
+
+#include "core/fxcrt/fx_unicode.h"
+#include "third_party/base/stl_util.h"
 
 CFX_BidiChar::CFX_BidiChar()
     : m_CurrentSegment({0, 0, NEUTRAL}), m_LastSegment({0, 0, NEUTRAL}) {}
 
-bool CFX_BidiChar::AppendChar(FX_WCHAR wch) {
-  uint32_t dwProps = FX_GetUnicodeProperties(wch);
-  int32_t iBidiCls = (dwProps & FX_BIDICLASSBITSMASK) >> FX_BIDICLASSBITS;
-  Direction direction = NEUTRAL;
-  switch (iBidiCls) {
-    case FX_BIDICLASS_L:
-    case FX_BIDICLASS_AN:
-    case FX_BIDICLASS_EN:
+bool CFX_BidiChar::AppendChar(wchar_t wch) {
+  Direction direction;
+  switch (FX_GetBidiClass(wch)) {
+    case FX_BIDICLASS::kL:
+    case FX_BIDICLASS::kAN:
+    case FX_BIDICLASS::kEN:
       direction = LEFT;
       break;
-    case FX_BIDICLASS_R:
-    case FX_BIDICLASS_AL:
+    case FX_BIDICLASS::kR:
+    case FX_BIDICLASS::kAL:
       direction = RIGHT;
+      break;
+    default:
+      direction = NEUTRAL;
       break;
   }
 
@@ -48,16 +51,14 @@ void CFX_BidiChar::StartNewSegment(CFX_BidiChar::Direction direction) {
   m_CurrentSegment.direction = direction;
 }
 
-CFX_BidiString::CFX_BidiString(const CFX_WideString& str)
-    : m_Str(str),
-      m_pBidiChar(new CFX_BidiChar),
-      m_eOverallDirection(CFX_BidiChar::LEFT) {
-  for (int i = 0; i < m_Str.GetLength(); ++i) {
-    if (m_pBidiChar->AppendChar(m_Str.GetAt(i)))
-      m_Order.push_back(m_pBidiChar->GetSegmentInfo());
+CFX_BidiString::CFX_BidiString(const WideString& str) : m_Str(str) {
+  CFX_BidiChar bidi;
+  for (wchar_t c : m_Str) {
+    if (bidi.AppendChar(c))
+      m_Order.push_back(bidi.GetSegmentInfo());
   }
-  if (m_pBidiChar->EndChar())
-    m_Order.push_back(m_pBidiChar->GetSegmentInfo());
+  if (bidi.EndChar())
+    m_Order.push_back(bidi.GetSegmentInfo());
 
   size_t nR2L = std::count_if(m_Order.begin(), m_Order.end(),
                               [](const CFX_BidiChar::Segment& seg) {
@@ -73,7 +74,12 @@ CFX_BidiString::CFX_BidiString(const CFX_WideString& str)
     SetOverallDirectionRight();
 }
 
-CFX_BidiString::~CFX_BidiString() {}
+CFX_BidiString::~CFX_BidiString() = default;
+
+CFX_BidiChar::Direction CFX_BidiString::OverallDirection() const {
+  ASSERT(m_eOverallDirection != CFX_BidiChar::NEUTRAL);
+  return m_eOverallDirection;
+}
 
 void CFX_BidiString::SetOverallDirectionRight() {
   if (m_eOverallDirection != CFX_BidiChar::RIGHT) {

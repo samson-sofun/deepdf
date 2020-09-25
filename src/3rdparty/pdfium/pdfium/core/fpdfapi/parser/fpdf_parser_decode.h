@@ -8,88 +8,87 @@
 #define CORE_FPDFAPI_PARSER_FPDF_PARSER_DECODE_H_
 
 #include <memory>
+#include <utility>
+#include <vector>
 
-#include "core/fxcrt/fx_basic.h"
+#include "core/fxcrt/fx_memory_wrappers.h"
+#include "core/fxcrt/fx_string.h"
+#include "third_party/base/optional.h"
+#include "third_party/base/span.h"
 
-class CCodec_ScanlineDecoder;
+class CPDF_Array;
 class CPDF_Dictionary;
+class CPDF_Object;
+
+namespace fxcodec {
+class ScanlineDecoder;
+}
 
 // Indexed by 8-bit char code, contains unicode code points.
 extern const uint16_t PDFDocEncoding[256];
 
-CFX_ByteString PDF_NameDecode(const CFX_ByteStringC& orig);
-CFX_ByteString PDF_NameDecode(const CFX_ByteString& orig);
-CFX_ByteString PDF_NameEncode(const CFX_ByteString& orig);
-CFX_ByteString PDF_EncodeString(const CFX_ByteString& src, bool bHex = false);
-CFX_WideString PDF_DecodeText(const uint8_t* pData, uint32_t size);
-CFX_WideString PDF_DecodeText(const CFX_ByteString& bstr);
-CFX_ByteString PDF_EncodeText(const FX_WCHAR* pString, int len = -1);
-CFX_ByteString PDF_EncodeText(const CFX_WideString& str);
+bool ValidateDecoderPipeline(const CPDF_Array* pDecoders);
 
-bool FlateEncode(const uint8_t* src_buf,
-                 uint32_t src_size,
-                 uint8_t** dest_buf,
-                 uint32_t* dest_size);
+ByteString PDF_EncodeString(const ByteString& src, bool bHex);
+WideString PDF_DecodeText(pdfium::span<const uint8_t> span);
+ByteString PDF_EncodeText(const WideString& str);
 
-// This used to have more parameters like the predictor and bpc, but there was
-// only one caller, so the interface has been simplified, the values are hard
-// coded, and dead code has been removed.
-bool PngEncode(const uint8_t* src_buf,
-               uint32_t src_size,
-               uint8_t** dest_buf,
-               uint32_t* dest_size);
-
-uint32_t FlateDecode(const uint8_t* src_buf,
-                     uint32_t src_size,
-                     uint8_t*& dest_buf,
-                     uint32_t& dest_size);
-uint32_t RunLengthDecode(const uint8_t* src_buf,
-                         uint32_t src_size,
-                         uint8_t*& dest_buf,
-                         uint32_t& dest_size);
-
-std::unique_ptr<CCodec_ScanlineDecoder> FPDFAPI_CreateFaxDecoder(
-    const uint8_t* src_buf,
-    uint32_t src_size,
+std::unique_ptr<fxcodec::ScanlineDecoder> CreateFaxDecoder(
+    pdfium::span<const uint8_t> src_span,
     int width,
     int height,
     const CPDF_Dictionary* pParams);
 
-std::unique_ptr<CCodec_ScanlineDecoder> FPDFAPI_CreateFlateDecoder(
-    const uint8_t* src_buf,
-    uint32_t src_size,
+std::unique_ptr<fxcodec::ScanlineDecoder> CreateFlateDecoder(
+    pdfium::span<const uint8_t> src_span,
     int width,
     int height,
     int nComps,
     int bpc,
     const CPDF_Dictionary* pParams);
 
-// Public for testing.
-uint32_t A85Decode(const uint8_t* src_buf,
-                   uint32_t src_size,
-                   uint8_t*& dest_buf,
-                   uint32_t& dest_size);
-// Public for testing.
-uint32_t HexDecode(const uint8_t* src_buf,
-                   uint32_t src_size,
-                   uint8_t*& dest_buf,
-                   uint32_t& dest_size);
-// Public for testing.
-uint32_t FPDFAPI_FlateOrLZWDecode(bool bLZW,
-                                  const uint8_t* src_buf,
-                                  uint32_t src_size,
-                                  CPDF_Dictionary* pParams,
-                                  uint32_t estimated_size,
-                                  uint8_t*& dest_buf,
-                                  uint32_t& dest_size);
-bool PDF_DataDecode(const uint8_t* src_buf,
-                    uint32_t src_size,
-                    const CPDF_Dictionary* pDict,
-                    uint8_t*& dest_buf,
-                    uint32_t& dest_size,
-                    CFX_ByteString& ImageEncoding,
-                    CPDF_Dictionary*& pImageParms,
+bool FlateEncode(pdfium::span<const uint8_t> src_span,
+                 std::unique_ptr<uint8_t, FxFreeDeleter>* dest_buf,
+                 uint32_t* dest_size);
+
+uint32_t FlateDecode(pdfium::span<const uint8_t> src_span,
+                     std::unique_ptr<uint8_t, FxFreeDeleter>* dest_buf,
+                     uint32_t* dest_size);
+
+uint32_t RunLengthDecode(pdfium::span<const uint8_t> src_span,
+                         std::unique_ptr<uint8_t, FxFreeDeleter>* dest_buf,
+                         uint32_t* dest_size);
+
+uint32_t A85Decode(pdfium::span<const uint8_t> src_span,
+                   std::unique_ptr<uint8_t, FxFreeDeleter>* dest_buf,
+                   uint32_t* dest_size);
+
+uint32_t HexDecode(pdfium::span<const uint8_t> src_span,
+                   std::unique_ptr<uint8_t, FxFreeDeleter>* dest_buf,
+                   uint32_t* dest_size);
+
+uint32_t FlateOrLZWDecode(bool bLZW,
+                          pdfium::span<const uint8_t> src_span,
+                          const CPDF_Dictionary* pParams,
+                          uint32_t estimated_size,
+                          std::unique_ptr<uint8_t, FxFreeDeleter>* dest_buf,
+                          uint32_t* dest_size);
+
+// Returns pdfium::nullopt if the filter in |pDict| is the wrong type or an
+// invalid decoder pipeline.
+// Returns an empty vector if there is no filter, or if the filter is an empty
+// array.
+// Otherwise, returns a vector of decoders.
+using DecoderArray = std::vector<std::pair<ByteString, const CPDF_Object*>>;
+Optional<DecoderArray> GetDecoderArray(const CPDF_Dictionary* pDict);
+
+bool PDF_DataDecode(pdfium::span<const uint8_t> src_span,
                     uint32_t estimated_size,
-                    bool bImageAcc);
+                    bool bImageAcc,
+                    const DecoderArray& decoder_array,
+                    std::unique_ptr<uint8_t, FxFreeDeleter>* dest_buf,
+                    uint32_t* dest_size,
+                    ByteString* ImageEncoding,
+                    RetainPtr<const CPDF_Dictionary>* pImageParams);
 
 #endif  // CORE_FPDFAPI_PARSER_FPDF_PARSER_DECODE_H_

@@ -6,126 +6,144 @@
 
 #include "core/fpdfapi/page/cpdf_textobject.h"
 
+#include <algorithm>
+#include <utility>
+
 #include "core/fpdfapi/font/cpdf_cidfont.h"
 #include "core/fpdfapi/font/cpdf_font.h"
-#include "third_party/base/ptr_util.h"
 
-CPDF_TextObject::CPDF_TextObject()
-    : m_PosX(0),
-      m_PosY(0),
-      m_nChars(0),
-      m_pCharCodes(nullptr),
-      m_pCharPos(nullptr) {}
+#define ISLATINWORD(u) (u != 0x20 && u <= 0x28FF)
+
+CPDF_TextObjectItem::CPDF_TextObjectItem() : m_CharCode(0) {}
+
+CPDF_TextObjectItem::~CPDF_TextObjectItem() = default;
+
+CPDF_TextObject::CPDF_TextObject(int32_t content_stream)
+    : CPDF_PageObject(content_stream) {}
+
+CPDF_TextObject::CPDF_TextObject() : CPDF_TextObject(kNoContentStream) {}
 
 CPDF_TextObject::~CPDF_TextObject() {
-  if (m_nChars > 1) {
-    FX_Free(m_pCharCodes);
-  }
-  FX_Free(m_pCharPos);
+  // Move m_CharCodes to a local variable so it will be captured in crash dumps,
+  // to help with investigating crbug.com/782215.
+  auto char_codes_copy = std::move(m_CharCodes);
 }
 
-int CPDF_TextObject::CountItems() const {
-  return m_nChars;
+size_t CPDF_TextObject::CountItems() const {
+  return m_CharCodes.size();
 }
 
-void CPDF_TextObject::GetItemInfo(int index, CPDF_TextObjectItem* pInfo) const {
-  pInfo->m_CharCode =
-      m_nChars == 1 ? (uint32_t)(uintptr_t)m_pCharCodes : m_pCharCodes[index];
-  pInfo->m_OriginX = index ? m_pCharPos[index - 1] : 0;
-  pInfo->m_OriginY = 0;
-  if (pInfo->m_CharCode == CPDF_Font::kInvalidCharCode) {
+void CPDF_TextObject::GetItemInfo(size_t index,
+                                  CPDF_TextObjectItem* pInfo) const {
+  ASSERT(index < m_CharCodes.size());
+  pInfo->m_CharCode = m_CharCodes[index];
+  pInfo->m_Origin = CFX_PointF(index > 0 ? m_CharPos[index - 1] : 0, 0);
+  if (pInfo->m_CharCode == CPDF_Font::kInvalidCharCode)
     return;
-  }
-  CPDF_Font* pFont = m_TextState.GetFont();
-  if (!pFont->IsCIDFont()) {
+
+  RetainPtr<CPDF_Font> pFont = GetFont();
+  if (!pFont->IsCIDFont() || !pFont->AsCIDFont()->IsVertWriting())
     return;
-  }
-  if (!pFont->AsCIDFont()->IsVertWriting()) {
-    return;
-  }
-  uint16_t CID = pFont->AsCIDFont()->CIDFromCharCode(pInfo->m_CharCode);
-  pInfo->m_OriginY = pInfo->m_OriginX;
-  pInfo->m_OriginX = 0;
-  short vx, vy;
-  pFont->AsCIDFont()->GetVertOrigin(CID, vx, vy);
-  FX_FLOAT fontsize = m_TextState.GetFontSize();
-  pInfo->m_OriginX -= fontsize * vx / 1000;
-  pInfo->m_OriginY -= fontsize * vy / 1000;
+
+  uint16_t cid = pFont->AsCIDFont()->CIDFromCharCode(pInfo->m_CharCode);
+  pInfo->m_Origin = CFX_PointF(0, pInfo->m_Origin.x);
+
+  CFX_Point16 vertical_origin = pFont->AsCIDFont()->GetVertOrigin(cid);
+  float fontsize = GetFontSize();
+  pInfo->m_Origin.x -= fontsize * vertical_origin.x / 1000;
+  pInfo->m_Origin.y -= fontsize * vertical_origin.y / 1000;
 }
 
-int CPDF_TextObject::CountChars() const {
-  if (m_nChars == 1) {
-    return 1;
-  }
-  int count = 0;
-  for (int i = 0; i < m_nChars; ++i)
-    if (m_pCharCodes[i] != CPDF_Font::kInvalidCharCode) {
+size_t CPDF_TextObject::CountChars() const {
+  size_t count = 0;
+  for (uint32_t charcode : m_CharCodes) {
+    if (charcode != CPDF_Font::kInvalidCharCode)
       ++count;
-    }
+  }
   return count;
 }
 
-void CPDF_TextObject::GetCharInfo(int index,
-                                  uint32_t& charcode,
-                                  FX_FLOAT& kerning) const {
-  if (m_nChars == 1) {
-    charcode = (uint32_t)(uintptr_t)m_pCharCodes;
-    kerning = 0;
-    return;
+uint32_t CPDF_TextObject::GetCharCode(size_t index) const {
+  size_t count = 0;
+  for (uint32_t code : m_CharCodes) {
+    if (code == CPDF_Font::kInvalidCharCode)
+      continue;
+    if (count++ != index)
+      continue;
+    return code;
   }
-  int count = 0;
-  for (int i = 0; i < m_nChars; ++i) {
-    if (m_pCharCodes[i] != CPDF_Font::kInvalidCharCode) {
-      if (count == index) {
-        charcode = m_pCharCodes[i];
-        if (i == m_nChars - 1 ||
-            m_pCharCodes[i + 1] != CPDF_Font::kInvalidCharCode) {
-          kerning = 0;
-        } else {
-          kerning = m_pCharPos[i];
-        }
-        return;
-      }
-      ++count;
-    }
+  return CPDF_Font::kInvalidCharCode;
+}
+
+void CPDF_TextObject::GetCharInfo(size_t index,
+                                  CPDF_TextObjectItem* pInfo) const {
+  size_t count = 0;
+  for (size_t i = 0; i < m_CharCodes.size(); ++i) {
+    uint32_t charcode = m_CharCodes[i];
+    if (charcode == CPDF_Font::kInvalidCharCode)
+      continue;
+    if (count++ != index)
+      continue;
+    GetItemInfo(i, pInfo);
+    break;
   }
 }
 
-void CPDF_TextObject::GetCharInfo(int index, CPDF_TextObjectItem* pInfo) const {
-  if (m_nChars == 1) {
-    GetItemInfo(0, pInfo);
-    return;
-  }
-  int count = 0;
-  for (int i = 0; i < m_nChars; ++i) {
-    uint32_t charcode = m_pCharCodes[i];
-    if (charcode == CPDF_Font::kInvalidCharCode) {
+int CPDF_TextObject::CountWords() const {
+  RetainPtr<CPDF_Font> pFont = GetFont();
+  bool bInLatinWord = false;
+  int nWords = 0;
+  for (size_t i = 0, sz = CountChars(); i < sz; ++i) {
+    uint32_t charcode = GetCharCode(i);
+
+    WideString swUnicode = pFont->UnicodeFromCharCode(charcode);
+    uint16_t unicode = 0;
+    if (swUnicode.GetLength() > 0)
+      unicode = swUnicode[0];
+
+    bool bIsLatin = ISLATINWORD(unicode);
+    if (bIsLatin && bInLatinWord)
       continue;
-    }
-    if (count == index) {
-      GetItemInfo(i, pInfo);
-      break;
-    }
-    ++count;
+
+    bInLatinWord = bIsLatin;
+    if (unicode != 0x20)
+      nWords++;
   }
+
+  return nWords;
+}
+
+WideString CPDF_TextObject::GetWordString(int nWordIndex) const {
+  RetainPtr<CPDF_Font> pFont = GetFont();
+  WideString swRet;
+  int nWords = 0;
+  bool bInLatinWord = false;
+  for (size_t i = 0, sz = CountChars(); i < sz; ++i) {
+    uint32_t charcode = GetCharCode(i);
+
+    WideString swUnicode = pFont->UnicodeFromCharCode(charcode);
+    uint16_t unicode = 0;
+    if (swUnicode.GetLength() > 0)
+      unicode = swUnicode[0];
+
+    bool bIsLatin = ISLATINWORD(unicode);
+    if (!bIsLatin || !bInLatinWord) {
+      bInLatinWord = bIsLatin;
+      if (unicode != 0x20)
+        nWords++;
+    }
+    if (nWords - 1 == nWordIndex)
+      swRet += unicode;
+  }
+  return swRet;
 }
 
 std::unique_ptr<CPDF_TextObject> CPDF_TextObject::Clone() const {
-  auto obj = pdfium::MakeUnique<CPDF_TextObject>();
+  auto obj = std::make_unique<CPDF_TextObject>();
   obj->CopyData(this);
-
-  obj->m_nChars = m_nChars;
-  if (m_nChars > 1) {
-    obj->m_pCharCodes = FX_Alloc(uint32_t, m_nChars);
-    FXSYS_memcpy(obj->m_pCharCodes, m_pCharCodes, m_nChars * sizeof(uint32_t));
-    obj->m_pCharPos = FX_Alloc(FX_FLOAT, m_nChars - 1);
-    FXSYS_memcpy(obj->m_pCharPos, m_pCharPos,
-                 (m_nChars - 1) * sizeof(FX_FLOAT));
-  } else {
-    obj->m_pCharCodes = m_pCharCodes;
-  }
-  obj->m_PosX = m_PosX;
-  obj->m_PosY = m_PosY;
+  obj->m_CharCodes = m_CharCodes;
+  obj->m_CharPos = m_CharPos;
+  obj->m_Pos = m_Pos;
   return obj;
 }
 
@@ -134,18 +152,16 @@ CPDF_PageObject::Type CPDF_TextObject::GetType() const {
 }
 
 void CPDF_TextObject::Transform(const CFX_Matrix& matrix) {
-  CFX_Matrix text_matrix;
-  GetTextMatrix(&text_matrix);
-  text_matrix.Concat(matrix);
+  CFX_Matrix text_matrix = GetTextMatrix() * matrix;
 
-  FX_FLOAT* pTextMatrix = m_TextState.GetMutableMatrix();
-  pTextMatrix[0] = text_matrix.GetA();
-  pTextMatrix[1] = text_matrix.GetC();
-  pTextMatrix[2] = text_matrix.GetB();
-  pTextMatrix[3] = text_matrix.GetD();
-  m_PosX = text_matrix.GetE();
-  m_PosY = text_matrix.GetF();
-  CalcPositionData(nullptr, nullptr, 0);
+  float* pTextMatrix = m_TextState.GetMutableMatrix();
+  pTextMatrix[0] = text_matrix.a;
+  pTextMatrix[1] = text_matrix.c;
+  pTextMatrix[2] = text_matrix.b;
+  pTextMatrix[3] = text_matrix.d;
+  m_Pos = CFX_PointF(text_matrix.e, text_matrix.f);
+  CalcPositionData(0);
+  SetDirty(true);
 }
 
 bool CPDF_TextObject::IsText() const {
@@ -160,230 +176,160 @@ const CPDF_TextObject* CPDF_TextObject::AsText() const {
   return this;
 }
 
-void CPDF_TextObject::GetTextMatrix(CFX_Matrix* pMatrix) const {
-  const FX_FLOAT* pTextMatrix = m_TextState.GetMatrix();
-  pMatrix->Set(pTextMatrix[0], pTextMatrix[2], pTextMatrix[1], pTextMatrix[3],
-               m_PosX, m_PosY);
+CFX_Matrix CPDF_TextObject::GetTextMatrix() const {
+  const float* pTextMatrix = m_TextState.GetMatrix();
+  return CFX_Matrix(pTextMatrix[0], pTextMatrix[2], pTextMatrix[1],
+                    pTextMatrix[3], m_Pos.x, m_Pos.y);
 }
 
-void CPDF_TextObject::SetSegments(const CFX_ByteString* pStrs,
-                                  FX_FLOAT* pKerning,
-                                  int nsegs) {
-  if (m_nChars > 1) {
-    FX_Free(m_pCharCodes);
-    m_pCharCodes = nullptr;
-  }
-  FX_Free(m_pCharPos);
-  m_pCharPos = nullptr;
-  CPDF_Font* pFont = m_TextState.GetFont();
-  m_nChars = 0;
-  for (int i = 0; i < nsegs; ++i) {
-    m_nChars += pFont->CountChar(pStrs[i].c_str(), pStrs[i].GetLength());
-  }
-  m_nChars += nsegs - 1;
-  if (m_nChars > 1) {
-    m_pCharCodes = FX_Alloc(uint32_t, m_nChars);
-    m_pCharPos = FX_Alloc(FX_FLOAT, m_nChars - 1);
-    int index = 0;
-    for (int i = 0; i < nsegs; ++i) {
-      const FX_CHAR* segment = pStrs[i].c_str();
-      int len = pStrs[i].GetLength();
-      int offset = 0;
-      while (offset < len) {
-        m_pCharCodes[index++] = pFont->GetNextChar(segment, len, offset);
-      }
-      if (i != nsegs - 1) {
-        m_pCharPos[index - 1] = pKerning[i];
-        m_pCharCodes[index++] = CPDF_Font::kInvalidCharCode;
-      }
+void CPDF_TextObject::SetSegments(const ByteString* pStrs,
+                                  const std::vector<float>& kernings,
+                                  size_t nSegs) {
+  m_CharCodes.clear();
+  m_CharPos.clear();
+  RetainPtr<CPDF_Font> pFont = GetFont();
+  int nChars = 0;
+  for (size_t i = 0; i < nSegs; ++i)
+    nChars += pFont->CountChar(pStrs[i].AsStringView());
+  nChars += nSegs - 1;
+  m_CharCodes.resize(nChars);
+  m_CharPos.resize(nChars - 1);
+  size_t index = 0;
+  for (size_t i = 0; i < nSegs; ++i) {
+    ByteStringView segment = pStrs[i].AsStringView();
+    size_t offset = 0;
+    while (offset < segment.GetLength()) {
+      ASSERT(index < m_CharCodes.size());
+      m_CharCodes[index++] = pFont->GetNextChar(segment, &offset);
     }
-  } else {
-    int offset = 0;
-    m_pCharCodes = (uint32_t*)(uintptr_t)pFont->GetNextChar(
-        pStrs[0].c_str(), pStrs[0].GetLength(), offset);
+    if (i != nSegs - 1) {
+      m_CharPos[index - 1] = kernings[i];
+      m_CharCodes[index++] = CPDF_Font::kInvalidCharCode;
+    }
   }
 }
 
-void CPDF_TextObject::SetText(const CFX_ByteString& str) {
-  SetSegments(&str, nullptr, 1);
+void CPDF_TextObject::SetText(const ByteString& str) {
+  SetSegments(&str, std::vector<float>(), 1);
   RecalcPositionData();
+  SetDirty(true);
 }
 
-FX_FLOAT CPDF_TextObject::GetCharWidth(uint32_t charcode) const {
-  FX_FLOAT fontsize = m_TextState.GetFontSize() / 1000;
-  CPDF_Font* pFont = m_TextState.GetFont();
+float CPDF_TextObject::GetCharWidth(uint32_t charcode) const {
+  float fontsize = GetFontSize() / 1000;
+  RetainPtr<CPDF_Font> pFont = GetFont();
   bool bVertWriting = false;
   CPDF_CIDFont* pCIDFont = pFont->AsCIDFont();
-  if (pCIDFont) {
+  if (pCIDFont)
     bVertWriting = pCIDFont->IsVertWriting();
-  }
   if (!bVertWriting)
     return pFont->GetCharWidthF(charcode) * fontsize;
 
-  uint16_t CID = pCIDFont->CIDFromCharCode(charcode);
-  return pCIDFont->GetVertWidth(CID) * fontsize;
+  uint16_t cid = pCIDFont->CIDFromCharCode(charcode);
+  return pCIDFont->GetVertWidth(cid) * fontsize;
 }
 
-FX_FLOAT CPDF_TextObject::GetPosX() const {
-  return m_PosX;
-}
-
-FX_FLOAT CPDF_TextObject::GetPosY() const {
-  return m_PosY;
-}
-
-CPDF_Font* CPDF_TextObject::GetFont() const {
+RetainPtr<CPDF_Font> CPDF_TextObject::GetFont() const {
   return m_TextState.GetFont();
 }
 
-FX_FLOAT CPDF_TextObject::GetFontSize() const {
+float CPDF_TextObject::GetFontSize() const {
   return m_TextState.GetFontSize();
 }
 
-void CPDF_TextObject::CalcPositionData(FX_FLOAT* pTextAdvanceX,
-                                       FX_FLOAT* pTextAdvanceY,
-                                       FX_FLOAT horz_scale) {
-  FX_FLOAT curpos = 0;
-  FX_FLOAT min_x = 10000 * 1.0f;
-  FX_FLOAT max_x = -10000 * 1.0f;
-  FX_FLOAT min_y = 10000 * 1.0f;
-  FX_FLOAT max_y = -10000 * 1.0f;
-  CPDF_Font* pFont = m_TextState.GetFont();
+TextRenderingMode CPDF_TextObject::GetTextRenderMode() const {
+  return m_TextState.GetTextMode();
+}
+
+void CPDF_TextObject::SetTextRenderMode(TextRenderingMode mode) {
+  m_TextState.SetTextMode(mode);
+  SetDirty(true);
+}
+
+CFX_PointF CPDF_TextObject::CalcPositionData(float horz_scale) {
+  float curpos = 0;
+  float min_x = 10000 * 1.0f;
+  float max_x = -10000 * 1.0f;
+  float min_y = 10000 * 1.0f;
+  float max_y = -10000 * 1.0f;
+  RetainPtr<CPDF_Font> pFont = GetFont();
   bool bVertWriting = false;
   CPDF_CIDFont* pCIDFont = pFont->AsCIDFont();
-  if (pCIDFont) {
+  if (pCIDFont)
     bVertWriting = pCIDFont->IsVertWriting();
-  }
-  FX_FLOAT fontsize = m_TextState.GetFontSize();
-  for (int i = 0; i < m_nChars; ++i) {
-    uint32_t charcode =
-        m_nChars == 1 ? (uint32_t)(uintptr_t)m_pCharCodes : m_pCharCodes[i];
+
+  float fontsize = GetFontSize();
+  for (size_t i = 0; i < m_CharCodes.size(); ++i) {
+    uint32_t charcode = m_CharCodes[i];
     if (i > 0) {
       if (charcode == CPDF_Font::kInvalidCharCode) {
-        curpos -= (m_pCharPos[i - 1] * fontsize) / 1000;
+        curpos -= (m_CharPos[i - 1] * fontsize) / 1000;
         continue;
       }
-      m_pCharPos[i - 1] = curpos;
+      m_CharPos[i - 1] = curpos;
     }
+
     FX_RECT char_rect = pFont->GetCharBBox(charcode);
-    FX_FLOAT charwidth;
+    float charwidth;
     if (!bVertWriting) {
-      if (min_y > char_rect.top) {
-        min_y = (FX_FLOAT)char_rect.top;
-      }
-      if (max_y < char_rect.top) {
-        max_y = (FX_FLOAT)char_rect.top;
-      }
-      if (min_y > char_rect.bottom) {
-        min_y = (FX_FLOAT)char_rect.bottom;
-      }
-      if (max_y < char_rect.bottom) {
-        max_y = (FX_FLOAT)char_rect.bottom;
-      }
-      FX_FLOAT char_left = curpos + char_rect.left * fontsize / 1000;
-      FX_FLOAT char_right = curpos + char_rect.right * fontsize / 1000;
-      if (min_x > char_left) {
-        min_x = char_left;
-      }
-      if (max_x < char_left) {
-        max_x = char_left;
-      }
-      if (min_x > char_right) {
-        min_x = char_right;
-      }
-      if (max_x < char_right) {
-        max_x = char_right;
-      }
+      min_y = std::min(
+          min_y, static_cast<float>(std::min(char_rect.top, char_rect.bottom)));
+      max_y = std::max(
+          max_y, static_cast<float>(std::max(char_rect.top, char_rect.bottom)));
+      float char_left = curpos + char_rect.left * fontsize / 1000;
+      float char_right = curpos + char_rect.right * fontsize / 1000;
+      min_x = std::min(min_x, std::min(char_left, char_right));
+      max_x = std::max(max_x, std::max(char_left, char_right));
       charwidth = pFont->GetCharWidthF(charcode) * fontsize / 1000;
     } else {
-      uint16_t CID = pCIDFont->CIDFromCharCode(charcode);
-      short vx;
-      short vy;
-      pCIDFont->GetVertOrigin(CID, vx, vy);
-      char_rect.left -= vx;
-      char_rect.right -= vx;
-      char_rect.top -= vy;
-      char_rect.bottom -= vy;
-      if (min_x > char_rect.left) {
-        min_x = (FX_FLOAT)char_rect.left;
-      }
-      if (max_x < char_rect.left) {
-        max_x = (FX_FLOAT)char_rect.left;
-      }
-      if (min_x > char_rect.right) {
-        min_x = (FX_FLOAT)char_rect.right;
-      }
-      if (max_x < char_rect.right) {
-        max_x = (FX_FLOAT)char_rect.right;
-      }
-      FX_FLOAT char_top = curpos + char_rect.top * fontsize / 1000;
-      FX_FLOAT char_bottom = curpos + char_rect.bottom * fontsize / 1000;
-      if (min_y > char_top) {
-        min_y = char_top;
-      }
-      if (max_y < char_top) {
-        max_y = char_top;
-      }
-      if (min_y > char_bottom) {
-        min_y = char_bottom;
-      }
-      if (max_y < char_bottom) {
-        max_y = char_bottom;
-      }
-      charwidth = pCIDFont->GetVertWidth(CID) * fontsize / 1000;
+      uint16_t cid = pCIDFont->CIDFromCharCode(charcode);
+      CFX_Point16 vertical_origin = pCIDFont->GetVertOrigin(cid);
+      char_rect.left -= vertical_origin.x;
+      char_rect.right -= vertical_origin.x;
+      char_rect.top -= vertical_origin.y;
+      char_rect.bottom -= vertical_origin.y;
+      min_x = std::min(
+          min_x, static_cast<float>(std::min(char_rect.left, char_rect.right)));
+      max_x = std::max(
+          max_x, static_cast<float>(std::max(char_rect.left, char_rect.right)));
+      float char_top = curpos + char_rect.top * fontsize / 1000;
+      float char_bottom = curpos + char_rect.bottom * fontsize / 1000;
+      min_y = std::min(min_y, std::min(char_top, char_bottom));
+      max_y = std::max(max_y, std::max(char_top, char_bottom));
+      charwidth = pCIDFont->GetVertWidth(cid) * fontsize / 1000;
     }
     curpos += charwidth;
-    if (charcode == ' ' && (!pCIDFont || pCIDFont->GetCharSize(32) == 1)) {
+    if (charcode == ' ' && (!pCIDFont || pCIDFont->GetCharSize(' ') == 1))
       curpos += m_TextState.GetWordSpace();
-    }
+
     curpos += m_TextState.GetCharSpace();
   }
+
+  CFX_PointF ret;
   if (bVertWriting) {
-    if (pTextAdvanceX) {
-      *pTextAdvanceX = 0;
-    }
-    if (pTextAdvanceY) {
-      *pTextAdvanceY = curpos;
-    }
+    ret.y = curpos;
     min_x = min_x * fontsize / 1000;
     max_x = max_x * fontsize / 1000;
   } else {
-    if (pTextAdvanceX) {
-      *pTextAdvanceX = curpos * horz_scale;
-    }
-    if (pTextAdvanceY) {
-      *pTextAdvanceY = 0;
-    }
+    ret.x = curpos * horz_scale;
     min_y = min_y * fontsize / 1000;
     max_y = max_y * fontsize / 1000;
   }
-  CFX_Matrix matrix;
-  GetTextMatrix(&matrix);
-  m_Left = min_x;
-  m_Right = max_x;
-  m_Bottom = min_y;
-  m_Top = max_y;
-  matrix.TransformRect(m_Left, m_Right, m_Top, m_Bottom);
-  if (TextRenderingModeIsStrokeMode(m_TextState.GetTextMode())) {
-    FX_FLOAT half_width = m_GraphState.GetLineWidth() / 2;
-    m_Left -= half_width;
-    m_Right += half_width;
-    m_Top += half_width;
-    m_Bottom -= half_width;
-  }
-}
+  SetRect(
+      GetTextMatrix().TransformRect(CFX_FloatRect(min_x, min_y, max_x, max_y)));
 
-void CPDF_TextObject::SetPosition(FX_FLOAT x, FX_FLOAT y) {
-  FX_FLOAT dx = x - m_PosX;
-  FX_FLOAT dy = y - m_PosY;
-  m_PosX = x;
-  m_PosY = y;
-  m_Left += dx;
-  m_Right += dx;
-  m_Top += dy;
-  m_Bottom += dy;
+  if (!TextRenderingModeIsStrokeMode(m_TextState.GetTextMode()))
+    return ret;
+
+  float half_width = m_GraphState.GetLineWidth() / 2;
+  m_Rect.left -= half_width;
+  m_Rect.right += half_width;
+  m_Rect.top += half_width;
+  m_Rect.bottom -= half_width;
+
+  return ret;
 }
 
 void CPDF_TextObject::RecalcPositionData() {
-  CalcPositionData(nullptr, nullptr, 1);
+  CalcPositionData(1);
 }

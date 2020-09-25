@@ -6,21 +6,24 @@
 
 #include "core/fpdfapi/render/cpdf_scaledrenderbuffer.h"
 
+#include "core/fpdfapi/render/cpdf_devicebuffer.h"
 #include "core/fpdfapi/render/cpdf_rendercontext.h"
-#include "core/fpdfapi/render/cpdf_renderoptions.h"
-#include "core/fxge/cfx_fxgedevice.h"
-#include "core/fxge/cfx_renderdevice.h"
-#include "third_party/base/ptr_util.h"
+#include "core/fxge/cfx_defaultrenderdevice.h"
+#include "core/fxge/dib/cfx_dibitmap.h"
 
-#define _FPDFAPI_IMAGESIZE_LIMIT_ (30 * 1024 * 1024)
+namespace {
+
+constexpr size_t kImageSizeLimitBytes = 30 * 1024 * 1024;
+
+}  // namespace
 
 CPDF_ScaledRenderBuffer::CPDF_ScaledRenderBuffer() {}
 
-CPDF_ScaledRenderBuffer::~CPDF_ScaledRenderBuffer() {}
+CPDF_ScaledRenderBuffer::~CPDF_ScaledRenderBuffer() = default;
 
 bool CPDF_ScaledRenderBuffer::Initialize(CPDF_RenderContext* pContext,
                                          CFX_RenderDevice* pDevice,
-                                         const FX_RECT& pRect,
+                                         const FX_RECT& rect,
                                          const CPDF_PageObject* pObj,
                                          const CPDF_RenderOptions* pOptions,
                                          int max_dpi) {
@@ -29,47 +32,39 @@ bool CPDF_ScaledRenderBuffer::Initialize(CPDF_RenderContext* pContext,
     return true;
 
   m_pContext = pContext;
-  m_Rect = pRect;
+  m_Rect = rect;
   m_pObject = pObj;
-  m_Matrix.TranslateI(-pRect.left, -pRect.top);
-  int horz_size = pDevice->GetDeviceCaps(FXDC_HORZ_SIZE);
-  int vert_size = pDevice->GetDeviceCaps(FXDC_VERT_SIZE);
-  if (horz_size && vert_size && max_dpi) {
-    int dpih =
-        pDevice->GetDeviceCaps(FXDC_PIXEL_WIDTH) * 254 / (horz_size * 10);
-    int dpiv =
-        pDevice->GetDeviceCaps(FXDC_PIXEL_HEIGHT) * 254 / (vert_size * 10);
-    if (dpih > max_dpi)
-      m_Matrix.Scale((FX_FLOAT)(max_dpi) / dpih, 1.0f);
-    if (dpiv > max_dpi)
-      m_Matrix.Scale(1.0f, (FX_FLOAT)(max_dpi) / (FX_FLOAT)dpiv);
-  }
-  m_pBitmapDevice = pdfium::MakeUnique<CFX_FxgeDevice>();
-  FXDIB_Format dibFormat = FXDIB_Rgb;
-  int32_t bpp = 24;
-  if (m_pDevice->GetDeviceCaps(FXDC_RENDER_CAPS) & FXRC_ALPHA_OUTPUT) {
-    dibFormat = FXDIB_Argb;
-    bpp = 32;
-  }
+  m_Matrix = CPDF_DeviceBuffer::CalculateMatrix(pDevice, rect, max_dpi,
+                                                /*scale=*/true);
+  m_pBitmapDevice = std::make_unique<CFX_DefaultRenderDevice>();
+  bool bIsAlpha =
+      !!(m_pDevice->GetDeviceCaps(FXDC_RENDER_CAPS) & FXRC_ALPHA_OUTPUT);
+  FXDIB_Format dibFormat = bIsAlpha ? FXDIB_Argb : FXDIB_Rgb;
   while (1) {
-    CFX_FloatRect rect(pRect);
-    m_Matrix.TransformRect(rect);
-    FX_RECT bitmap_rect = rect.GetOuterRect();
-    int32_t iWidth = bitmap_rect.Width();
-    int32_t iHeight = bitmap_rect.Height();
-    int32_t iPitch = (iWidth * bpp + 31) / 32 * 4;
-    if (iWidth * iHeight < 1)
+    FX_RECT bitmap_rect =
+        m_Matrix.TransformRect(CFX_FloatRect(rect)).GetOuterRect();
+    int32_t width = bitmap_rect.Width();
+    int32_t height = bitmap_rect.Height();
+    // Set to 0 to make CalculatePitchAndSize() calculate it.
+    constexpr uint32_t kNoPitch = 0;
+    Optional<CFX_DIBitmap::PitchAndSize> pitch_size =
+        CFX_DIBitmap::CalculatePitchAndSize(width, height, dibFormat, kNoPitch);
+    if (!pitch_size.has_value())
       return false;
 
-    if (iPitch * iHeight <= _FPDFAPI_IMAGESIZE_LIMIT_ &&
-        m_pBitmapDevice->Create(iWidth, iHeight, dibFormat, nullptr)) {
+    if (pitch_size.value().size <= kImageSizeLimitBytes &&
+        m_pBitmapDevice->Create(width, height, dibFormat, nullptr)) {
       break;
     }
     m_Matrix.Scale(0.5f, 0.5f);
   }
-  m_pContext->GetBackground(m_pBitmapDevice->GetBitmap(), m_pObject, pOptions,
-                            &m_Matrix);
+  m_pContext->GetBackground(m_pBitmapDevice->GetBitmap(), m_pObject.Get(),
+                            pOptions, m_Matrix);
   return true;
+}
+
+CFX_RenderDevice* CPDF_ScaledRenderBuffer::GetDevice() const {
+  return m_pBitmapDevice ? m_pBitmapDevice.get() : m_pDevice.Get();
 }
 
 void CPDF_ScaledRenderBuffer::OutputToDevice() {

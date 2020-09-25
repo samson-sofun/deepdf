@@ -6,33 +6,85 @@
 
 #include "core/fpdfapi/font/cpdf_type3char.h"
 
-#include "core/fpdfapi/page/cpdf_form.h"
-#include "core/fpdfapi/page/cpdf_image.h"
-#include "core/fpdfapi/page/cpdf_imageobject.h"
-#include "core/fpdfapi/page/cpdf_pageobject.h"
+#include <utility>
+
+#include "core/fxge/dib/cfx_dibitmap.h"
 #include "core/fxge/fx_dib.h"
 
-CPDF_Type3Char::CPDF_Type3Char(CPDF_Form* pForm)
-    : m_pForm(pForm), m_bColored(false) {}
+namespace {
 
-CPDF_Type3Char::~CPDF_Type3Char() {}
+constexpr float kTextUnitInGlyphUnit = 1000.0f;
 
-bool CPDF_Type3Char::LoadBitmap(CPDF_RenderContext* pContext) {
+}  // namespace
+
+CPDF_Type3Char::CPDF_Type3Char() = default;
+
+CPDF_Type3Char::~CPDF_Type3Char() = default;
+
+// static
+float CPDF_Type3Char::TextUnitToGlyphUnit(float fTextUnit) {
+  return fTextUnit * kTextUnitInGlyphUnit;
+}
+
+// static
+void CPDF_Type3Char::TextUnitRectToGlyphUnitRect(CFX_FloatRect* pRect) {
+  pRect->Scale(kTextUnitInGlyphUnit);
+}
+
+bool CPDF_Type3Char::LoadBitmapFromSoleImageOfForm() {
   if (m_pBitmap || !m_pForm)
     return true;
 
-  if (m_pForm->GetPageObjectList()->size() != 1 || m_bColored)
+  if (m_bColored)
     return false;
 
-  auto& pPageObj = m_pForm->GetPageObjectList()->front();
-  if (!pPageObj->IsImage())
+  auto result = m_pForm->GetBitmapAndMatrixFromSoleImageOfForm();
+  if (!result.has_value())
     return false;
 
-  m_ImageMatrix = pPageObj->AsImage()->matrix();
-  std::unique_ptr<CFX_DIBSource> pSource =
-      pPageObj->AsImage()->GetImage()->LoadDIBSource();
-  if (pSource)
-    m_pBitmap = pSource->Clone();
+  std::tie(m_pBitmap, m_ImageMatrix) = result.value();
   m_pForm.reset();
   return true;
+}
+
+void CPDF_Type3Char::InitializeFromStreamData(bool bColored,
+                                              const float* pData) {
+  m_bColored = bColored;
+  m_Width = FXSYS_roundf(TextUnitToGlyphUnit(pData[0]));
+  m_BBox.left = FXSYS_roundf(TextUnitToGlyphUnit(pData[2]));
+  m_BBox.bottom = FXSYS_roundf(TextUnitToGlyphUnit(pData[3]));
+  m_BBox.right = FXSYS_roundf(TextUnitToGlyphUnit(pData[4]));
+  m_BBox.top = FXSYS_roundf(TextUnitToGlyphUnit(pData[5]));
+}
+
+void CPDF_Type3Char::WillBeDestroyed() {
+  // Break cycles.
+  m_pForm.reset();
+}
+
+void CPDF_Type3Char::Transform(CPDF_Font::FormIface* pForm,
+                               const CFX_Matrix& matrix) {
+  m_Width = m_Width * matrix.GetXUnit() + 0.5f;
+
+  CFX_FloatRect char_rect;
+  if (m_BBox.right <= m_BBox.left || m_BBox.bottom >= m_BBox.top) {
+    char_rect = pForm->CalcBoundingBox();
+    TextUnitRectToGlyphUnitRect(&char_rect);
+  } else {
+    char_rect = CFX_FloatRect(m_BBox);
+  }
+
+  m_BBox = matrix.TransformRect(char_rect).ToRoundedFxRect();
+}
+
+void CPDF_Type3Char::SetForm(std::unique_ptr<CPDF_Font::FormIface> pForm) {
+  m_pForm = std::move(pForm);
+}
+
+RetainPtr<CFX_DIBitmap> CPDF_Type3Char::GetBitmap() {
+  return m_pBitmap;
+}
+
+const RetainPtr<CFX_DIBitmap>& CPDF_Type3Char::GetBitmap() const {
+  return m_pBitmap;
 }

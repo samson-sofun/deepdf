@@ -118,13 +118,13 @@ void outline_aa::allocate_block()
         if(m_num_blocks >= m_max_blocks) {
             cell_aa** new_cells = FX_Alloc( cell_aa*, m_max_blocks + cell_block_pool);
             if(m_cells) {
-                FXSYS_memcpy(new_cells, m_cells, m_max_blocks * sizeof(cell_aa*));
-                FX_Free(m_cells);
+              memcpy(new_cells, m_cells, m_max_blocks * sizeof(cell_aa*));
+              FX_Free(m_cells);
             }
             m_cells = new_cells;
             m_max_blocks += cell_block_pool;
         }
-        m_cells[m_num_blocks++] = FX_Alloc(cell_aa, cell_block_size);
+        m_cells[m_num_blocks++] = FX_AllocUninit(cell_aa, cell_block_size);
     }
     m_cur_cell_ptr = m_cells[m_cur_block++];
 }
@@ -283,8 +283,8 @@ void outline_aa::render_line(int x1, int y1, int x2, int y2)
       incr = -1;
       dy = -dy;
     }
-    delta = safeP.ValueOrDie() / dy;
-    mod = safeP.ValueOrDie() % dy;
+    delta = (safeP / dy).ValueOrDie();
+    mod = (safeP % dy).ValueOrDie();
     if(mod < 0) {
         delta--;
         mod += dy;
@@ -298,8 +298,8 @@ void outline_aa::render_line(int x1, int y1, int x2, int y2)
       safeP *= dx;
       if (!safeP.IsValid())
         return;
-      lift = safeP.ValueOrDie() / dy;
-      rem = safeP.ValueOrDie() % dy;
+      lift = (safeP / dy).ValueOrDie();
+      rem = (safeP % dy).ValueOrDie();
       if (rem < 0) {
         lift--;
         rem += dy;
@@ -494,5 +494,24 @@ void outline_aa::sort_cells()
         }
     }
     m_sorted = true;
+}
+// static
+int rasterizer_scanline_aa::calculate_area(int cover, int shift)
+{
+    unsigned int result = cover;
+    result <<= shift;
+    return result;
+}
+// static
+bool rasterizer_scanline_aa::safe_add(int* op1, int op2)
+{
+    pdfium::base::CheckedNumeric<int> safeOp1 = *op1;
+    safeOp1 += op2;
+    if(!safeOp1.IsValid()) {
+        return false;
+    }
+
+    *op1 = safeOp1.ValueOrDie();
+    return true;
 }
 }

@@ -8,7 +8,8 @@
 
 #include <vector>
 
-#include "core/fxcrt/fx_basic.h"
+#include "core/fxcrt/fx_safe_types.h"
+#include "third_party/base/stl_util.h"
 
 namespace {
 
@@ -27,12 +28,12 @@ size_t RecursiveDecode(CJBig2_ArithDecoder* decoder,
                        std::vector<JBig2ArithCtx>* context,
                        int* prev,
                        size_t depth) {
-  static const size_t kDepthEnd = FX_ArraySize(g_ArithIntDecodeData) - 1;
+  static const size_t kDepthEnd = pdfium::size(g_ArithIntDecodeData) - 1;
   if (depth == kDepthEnd)
     return kDepthEnd;
 
   JBig2ArithCtx* pCX = &(*context)[*prev];
-  int D = decoder->DECODE(pCX);
+  int D = decoder->Decode(pCX);
   *prev = ShiftOr(*prev, D);
   if (!D)
     return depth;
@@ -45,12 +46,15 @@ CJBig2_ArithIntDecoder::CJBig2_ArithIntDecoder() {
   m_IAx.resize(512);
 }
 
-CJBig2_ArithIntDecoder::~CJBig2_ArithIntDecoder() {}
+CJBig2_ArithIntDecoder::~CJBig2_ArithIntDecoder() = default;
 
-bool CJBig2_ArithIntDecoder::decode(CJBig2_ArithDecoder* pArithDecoder,
+bool CJBig2_ArithIntDecoder::Decode(CJBig2_ArithDecoder* pArithDecoder,
                                     int* nResult) {
+  // This decoding algorithm is explained in "Annex A - Arithmetic Integer
+  // Decoding Procedure" on page 113 of the JBIG2 specification (ISO/IEC FCD
+  // 14492).
   int PREV = 1;
-  const int S = pArithDecoder->DECODE(&m_IAx[PREV]);
+  const int S = pArithDecoder->Decode(&m_IAx[PREV]);
   PREV = ShiftOr(PREV, S);
 
   const size_t nDecodeDataIndex =
@@ -58,14 +62,22 @@ bool CJBig2_ArithIntDecoder::decode(CJBig2_ArithDecoder* pArithDecoder,
 
   int nTemp = 0;
   for (int i = 0; i < g_ArithIntDecodeData[nDecodeDataIndex].nNeedBits; ++i) {
-    int D = pArithDecoder->DECODE(&m_IAx[PREV]);
+    int D = pArithDecoder->Decode(&m_IAx[PREV]);
     PREV = ShiftOr(PREV, D);
     if (PREV >= 256)
       PREV = (PREV & 511) | 256;
     nTemp = ShiftOr(nTemp, D);
   }
-  int nValue = g_ArithIntDecodeData[nDecodeDataIndex].nValue;
-  nValue += nTemp;
+  FX_SAFE_INT32 safeValue = g_ArithIntDecodeData[nDecodeDataIndex].nValue;
+  safeValue += nTemp;
+
+  // Value does not fit in int.
+  if (!safeValue.IsValid()) {
+    *nResult = 0;
+    return false;
+  }
+
+  int nValue = safeValue.ValueOrDie();
   if (S == 1 && nValue > 0)
     nValue = -nValue;
 
@@ -78,14 +90,14 @@ CJBig2_ArithIaidDecoder::CJBig2_ArithIaidDecoder(unsigned char SBSYMCODELENA)
   m_IAID.resize(static_cast<size_t>(1) << SBSYMCODELEN);
 }
 
-CJBig2_ArithIaidDecoder::~CJBig2_ArithIaidDecoder() {}
+CJBig2_ArithIaidDecoder::~CJBig2_ArithIaidDecoder() = default;
 
-void CJBig2_ArithIaidDecoder::decode(CJBig2_ArithDecoder* pArithDecoder,
+void CJBig2_ArithIaidDecoder::Decode(CJBig2_ArithDecoder* pArithDecoder,
                                      uint32_t* nResult) {
   int PREV = 1;
   for (unsigned char i = 0; i < SBSYMCODELEN; ++i) {
     JBig2ArithCtx* pCX = &m_IAID[PREV];
-    int D = pArithDecoder->DECODE(pCX);
+    int D = pArithDecoder->Decode(pCX);
     PREV = ShiftOr(PREV, D);
   }
   *nResult = PREV - (1 << SBSYMCODELEN);

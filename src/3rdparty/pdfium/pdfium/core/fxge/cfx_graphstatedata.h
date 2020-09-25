@@ -7,32 +7,52 @@
 #ifndef CORE_FXGE_CFX_GRAPHSTATEDATA_H_
 #define CORE_FXGE_CFX_GRAPHSTATEDATA_H_
 
+#include <vector>
+
 #include "core/fxcrt/fx_system.h"
+#include "core/fxcrt/retain_ptr.h"
 
 class CFX_GraphStateData {
  public:
-  enum LineCap { LineCapButt = 0, LineCapRound = 1, LineCapSquare = 2 };
+  enum LineCap : uint8_t {
+    LineCapButt = 0,
+    LineCapRound = 1,
+    LineCapSquare = 2
+  };
+
+  enum LineJoin : uint8_t {
+    LineJoinMiter = 0,
+    LineJoinRound = 1,
+    LineJoinBevel = 2
+  };
 
   CFX_GraphStateData();
   CFX_GraphStateData(const CFX_GraphStateData& src);
+  CFX_GraphStateData(CFX_GraphStateData&& src) noexcept;
   ~CFX_GraphStateData();
 
-  void Copy(const CFX_GraphStateData& src);
-  void SetDashCount(int count);
+  CFX_GraphStateData& operator=(const CFX_GraphStateData& that);
+  CFX_GraphStateData& operator=(CFX_GraphStateData&& that) noexcept;
 
-  LineCap m_LineCap;
-  int m_DashCount;
-  FX_FLOAT* m_DashArray;
-  FX_FLOAT m_DashPhase;
+  LineCap m_LineCap = LineCapButt;
+  LineJoin m_LineJoin = LineJoinMiter;
+  float m_DashPhase = 0.0f;
+  float m_MiterLimit = 10.0f;
+  float m_LineWidth = 1.0f;
+  std::vector<float> m_DashArray;
+};
 
-  enum LineJoin {
-    LineJoinMiter = 0,
-    LineJoinRound = 1,
-    LineJoinBevel = 2,
-  };
-  LineJoin m_LineJoin;
-  FX_FLOAT m_MiterLimit;
-  FX_FLOAT m_LineWidth;
+class CFX_RetainableGraphStateData : public Retainable,
+                                     public CFX_GraphStateData {
+ public:
+  CONSTRUCT_VIA_MAKE_RETAIN;
+
+  RetainPtr<CFX_RetainableGraphStateData> Clone() const;
+
+ private:
+  CFX_RetainableGraphStateData();
+  CFX_RetainableGraphStateData(const CFX_RetainableGraphStateData& src);
+  ~CFX_RetainableGraphStateData() override;
 };
 
 #endif  // CORE_FXGE_CFX_GRAPHSTATEDATA_H_

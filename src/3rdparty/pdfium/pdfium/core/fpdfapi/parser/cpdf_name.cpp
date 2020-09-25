@@ -7,30 +7,30 @@
 #include "core/fpdfapi/parser/cpdf_name.h"
 
 #include "core/fpdfapi/parser/fpdf_parser_decode.h"
-#include "third_party/base/ptr_util.h"
+#include "core/fpdfapi/parser/fpdf_parser_utility.h"
+#include "core/fxcrt/fx_stream.h"
 
-CPDF_Name::CPDF_Name(CFX_WeakPtr<CFX_ByteStringPool> pPool,
-                     const CFX_ByteString& str)
+CPDF_Name::CPDF_Name(WeakPtr<ByteStringPool> pPool, const ByteString& str)
     : m_Name(str) {
   if (pPool)
     m_Name = pPool->Intern(m_Name);
 }
 
-CPDF_Name::~CPDF_Name() {}
+CPDF_Name::~CPDF_Name() = default;
 
 CPDF_Object::Type CPDF_Name::GetType() const {
-  return NAME;
+  return kName;
 }
 
-std::unique_ptr<CPDF_Object> CPDF_Name::Clone() const {
-  return pdfium::MakeUnique<CPDF_Name>(nullptr, m_Name);
+RetainPtr<CPDF_Object> CPDF_Name::Clone() const {
+  return pdfium::MakeRetain<CPDF_Name>(nullptr, m_Name);
 }
 
-CFX_ByteString CPDF_Name::GetString() const {
+ByteString CPDF_Name::GetString() const {
   return m_Name;
 }
 
-void CPDF_Name::SetString(const CFX_ByteString& str) {
+void CPDF_Name::SetString(const ByteString& str) {
   m_Name = str;
 }
 
@@ -46,6 +46,12 @@ const CPDF_Name* CPDF_Name::AsName() const {
   return this;
 }
 
-CFX_WideString CPDF_Name::GetUnicodeText() const {
-  return PDF_DecodeText(m_Name);
+WideString CPDF_Name::GetUnicodeText() const {
+  return PDF_DecodeText(m_Name.raw_span());
+}
+
+bool CPDF_Name::WriteTo(IFX_ArchiveStream* archive,
+                        const CPDF_Encryptor* encryptor) const {
+  return archive->WriteString("/") &&
+         archive->WriteString(PDF_NameEncode(GetString()).AsStringView());
 }

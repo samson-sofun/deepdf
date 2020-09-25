@@ -4,22 +4,29 @@
 
 // Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
 
-#include "core/fxcrt/fx_system.h"
+#include <memory>
+#include <vector>
 
-#ifndef _SKIA_SUPPORT_
+#include "core/fxcrt/fx_memory_wrappers.h"
+#include "core/fxcrt/fx_system.h"
+#include "core/fxge/apple/fx_mac_impl.h"
+#include "core/fxge/cfx_cliprgn.h"
+#include "core/fxge/cfx_font.h"
+#include "core/fxge/cfx_gemodule.h"
+#include "core/fxge/cfx_glyphbitmap.h"
+#include "core/fxge/cfx_glyphcache.h"
+#include "core/fxge/cfx_renderdevice.h"
+#include "core/fxge/cfx_substfont.h"
+#include "core/fxge/dib/cfx_dibitmap.h"
+#include "core/fxge/fx_freetype.h"
+#include "core/fxge/text_char_pos.h"
+#include "third_party/base/span.h"
+
+#if !defined(_SKIA_SUPPORT_)
 #include "core/fxge/agg/fx_agg_driver.h"
 #endif
 
-#include "core/fxge/apple/apple_int.h"
-#include "core/fxge/cfx_facecache.h"
-#include "core/fxge/cfx_gemodule.h"
-#include "core/fxge/cfx_renderdevice.h"
-#include "core/fxge/dib/dib_int.h"
-#include "core/fxge/fx_freetype.h"
-#include "core/fxge/ge/cfx_cliprgn.h"
-#include "core/fxge/ge/fx_text_int.h"
-
-#ifndef _SKIA_SUPPORT_
+#if !defined(_SKIA_SUPPORT_)
 
 namespace {
 
@@ -27,46 +34,41 @@ void DoNothing(void* info, const void* data, size_t size) {}
 
 bool CGDrawGlyphRun(CGContextRef pContext,
                     int nChars,
-                    const FXTEXT_CHARPOS* pCharPos,
+                    const TextCharPos* pCharPos,
                     CFX_Font* pFont,
-                    const CFX_Matrix* pObject2Device,
-                    FX_FLOAT font_size,
+                    const CFX_Matrix& mtObject2Device,
+                    float font_size,
                     uint32_t argb) {
   if (nChars == 0)
     return true;
 
-  CFX_Matrix new_matrix;
   bool bNegSize = font_size < 0;
   if (bNegSize)
     font_size = -font_size;
 
-  FX_FLOAT ori_x = pCharPos[0].m_OriginX, ori_y = pCharPos[0].m_OriginY;
-  new_matrix.Transform(ori_x, ori_y);
-  if (pObject2Device)
-    new_matrix.Concat(*pObject2Device);
-
+  CFX_Matrix new_matrix = mtObject2Device;
   CQuartz2D& quartz2d =
-      static_cast<CApplePlatform*>(CFX_GEModule::Get()->GetPlatformData())
+      static_cast<CApplePlatform*>(CFX_GEModule::Get()->GetPlatform())
           ->m_quartz2d;
   if (!pFont->GetPlatformFont()) {
     if (pFont->GetPsName() == "DFHeiStd-W5")
       return false;
 
-    pFont->SetPlatformFont(
-        quartz2d.CreateFont(pFont->GetFontData(), pFont->GetSize()));
+    pdfium::span<const uint8_t> span = pFont->GetFontSpan();
+    pFont->SetPlatformFont(quartz2d.CreateFont(span.data(), span.size()));
     if (!pFont->GetPlatformFont())
       return false;
   }
-  CFX_FixedBufGrow<uint16_t, 32> glyph_indices(nChars);
-  CFX_FixedBufGrow<CGPoint, 32> glyph_positions(nChars);
+  std::vector<uint16_t, FxAllocAllocator<uint16_t>> glyph_indices(nChars);
+  std::vector<CGPoint> glyph_positions(nChars);
   for (int i = 0; i < nChars; i++) {
     glyph_indices[i] =
         pCharPos[i].m_ExtGID ? pCharPos[i].m_ExtGID : pCharPos[i].m_GlyphIndex;
     if (bNegSize)
-      glyph_positions[i].x = -pCharPos[i].m_OriginX;
+      glyph_positions[i].x = -pCharPos[i].m_Origin.x;
     else
-      glyph_positions[i].x = pCharPos[i].m_OriginX;
-    glyph_positions[i].y = pCharPos[i].m_OriginY;
+      glyph_positions[i].x = pCharPos[i].m_Origin.x;
+    glyph_positions[i].y = pCharPos[i].m_Origin.y;
   }
   if (bNegSize) {
     new_matrix.a = -new_matrix.a;
@@ -75,37 +77,39 @@ bool CGDrawGlyphRun(CGContextRef pContext,
     new_matrix.b = -new_matrix.b;
     new_matrix.d = -new_matrix.d;
   }
-  quartz2d.setGraphicsTextMatrix(pContext, &new_matrix);
-  return quartz2d.drawGraphicsString(pContext, pFont->GetPlatformFont(),
-                                     font_size, glyph_indices, glyph_positions,
-                                     nChars, argb, nullptr);
+  quartz2d.SetGraphicsTextMatrix(pContext, new_matrix);
+  return quartz2d.DrawGraphicsString(pContext, pFont->GetPlatformFont(),
+                                     font_size, glyph_indices.data(),
+                                     glyph_positions.data(), nChars, argb);
 }
 
 }  // namespace
 
 void CFX_AggDeviceDriver::InitPlatform() {
   CQuartz2D& quartz2d =
-      static_cast<CApplePlatform*>(CFX_GEModule::Get()->GetPlatformData())
+      static_cast<CApplePlatform*>(CFX_GEModule::Get()->GetPlatform())
           ->m_quartz2d;
-  m_pPlatformGraphics = quartz2d.createGraphics(m_pBitmap);
+  m_pPlatformGraphics = quartz2d.CreateGraphics(m_pBitmap);
 }
 
 void CFX_AggDeviceDriver::DestroyPlatform() {
   CQuartz2D& quartz2d =
-      static_cast<CApplePlatform*>(CFX_GEModule::Get()->GetPlatformData())
+      static_cast<CApplePlatform*>(CFX_GEModule::Get()->GetPlatform())
           ->m_quartz2d;
   if (m_pPlatformGraphics) {
-    quartz2d.destroyGraphics(m_pPlatformGraphics);
+    quartz2d.DestroyGraphics(m_pPlatformGraphics);
     m_pPlatformGraphics = nullptr;
   }
 }
 
-bool CFX_AggDeviceDriver::DrawDeviceText(int nChars,
-                                         const FXTEXT_CHARPOS* pCharPos,
-                                         CFX_Font* pFont,
-                                         const CFX_Matrix* pObject2Device,
-                                         FX_FLOAT font_size,
-                                         uint32_t argb) {
+bool CFX_AggDeviceDriver::DrawDeviceText(
+    int nChars,
+    const TextCharPos* pCharPos,
+    CFX_Font* pFont,
+    const CFX_Matrix& mtObject2Device,
+    float font_size,
+    uint32_t argb,
+    const CFX_TextRenderOptions& /*options*/) {
   if (!pFont)
     return false;
 
@@ -131,7 +135,7 @@ bool CFX_AggDeviceDriver::DrawDeviceText(int nChars,
     rect_cg =
         CGRectMake(m_pClipRgn->GetBox().left, m_pClipRgn->GetBox().top,
                    m_pClipRgn->GetBox().Width(), m_pClipRgn->GetBox().Height());
-    const CFX_DIBitmap* pClipMask = m_pClipRgn->GetMask().GetObject();
+    RetainPtr<CFX_DIBitmap> pClipMask = m_pClipRgn->GetMask();
     if (pClipMask) {
       CGDataProviderRef pClipMaskDataProvider = CGDataProviderCreateWithData(
           nullptr, pClipMask->GetBuffer(),
@@ -151,7 +155,7 @@ bool CFX_AggDeviceDriver::DrawDeviceText(int nChars,
   else
     CGContextClipToRect(ctx, rect_cg);
 
-  bool ret = CGDrawGlyphRun(ctx, nChars, pCharPos, pFont, pObject2Device,
+  bool ret = CGDrawGlyphRun(ctx, nChars, pCharPos, pFont, mtObject2Device,
                             font_size, argb);
   if (pImageCG)
     CGImageRelease(pImageCG);
@@ -159,16 +163,16 @@ bool CFX_AggDeviceDriver::DrawDeviceText(int nChars,
   return ret;
 }
 
-#endif  // _SKIA_SUPPORT_
+#endif  // !defined(_SKIA_SUPPORT_)
 
-void CFX_FaceCache::InitPlatform() {}
+void CFX_GlyphCache::InitPlatform() {}
 
-void CFX_FaceCache::DestroyPlatform() {}
+void CFX_GlyphCache::DestroyPlatform() {}
 
-CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph_Nativetext(
+std::unique_ptr<CFX_GlyphBitmap> CFX_GlyphCache::RenderGlyph_Nativetext(
     const CFX_Font* pFont,
     uint32_t glyph_index,
-    const CFX_Matrix* pMatrix,
+    const CFX_Matrix& matrix,
     int dest_width,
     int anti_alias) {
   return nullptr;
@@ -177,7 +181,7 @@ CFX_GlyphBitmap* CFX_FaceCache::RenderGlyph_Nativetext(
 void CFX_Font::ReleasePlatformResource() {
   if (m_pPlatformFont) {
     CQuartz2D& quartz2d =
-        static_cast<CApplePlatform*>(CFX_GEModule::Get()->GetPlatformData())
+        static_cast<CApplePlatform*>(CFX_GEModule::Get()->GetPlatform())
             ->m_quartz2d;
     quartz2d.DestroyFont(m_pPlatformFont);
     m_pPlatformFont = nullptr;

@@ -11,132 +11,162 @@
 #include <memory>
 #include <vector>
 
+#include "core/fpdfapi/page/cpdf_occontext.h"
 #include "core/fpdfapi/page/cpdf_page.h"
 #include "core/fpdfapi/parser/cpdf_document.h"
-#include "core/fpdfdoc/cpdf_occontext.h"
-#include "core/fxcrt/cfx_observable.h"
-#include "fpdfsdk/cfx_systemhandler.h"
+#include "core/fxcrt/observed_ptr.h"
+#include "core/fxcrt/timerhandler_iface.h"
 #include "fpdfsdk/cpdfsdk_annot.h"
-#include "fpdfsdk/fsdk_define.h"
+#include "fpdfsdk/pwl/ipwl_systemhandler.h"
 #include "public/fpdf_formfill.h"
-#include "public/fpdf_fwlevent.h"
 
 class CFFL_InteractiveFormFiller;
-class CFX_SystemHandler;
 class CPDFSDK_ActionHandler;
 class CPDFSDK_AnnotHandlerMgr;
-class CPDFSDK_InterForm;
+class CPDFSDK_InteractiveForm;
 class CPDFSDK_PageView;
 class IJS_Runtime;
 
-class CPDFSDK_FormFillEnvironment
-    : public CFX_Observable<CPDFSDK_FormFillEnvironment> {
- public:
-  CPDFSDK_FormFillEnvironment(UnderlyingDocumentType* pDoc,
-                              FPDF_FORMFILLINFO* pFFinfo);
-  ~CPDFSDK_FormFillEnvironment();
+// NOTE: |bsUTF16LE| must outlive the use of the result. Care must be taken
+// since modifying the result would impact |bsUTF16LE|.
+FPDF_WIDESTRING AsFPDFWideString(ByteString* bsUTF16LE);
 
-  CPDFSDK_PageView* GetPageView(UnderlyingPageType* pPage, bool renew);
-  CPDFSDK_PageView* GetPageView(int nIndex);
-  CPDFSDK_PageView* GetCurrentView();
-  void RemovePageView(UnderlyingPageType* pPage);
+// The CPDFSDK_FormFillEnvironment is "owned" by the embedder across the
+// C API as a FPDF_FormHandle, and may pop out of existence at any time,
+// so long as the associated embedder-owned FPDF_Document outlives it.
+// Pointers from objects in the FPDF_Document ownership hierarchy should
+// be ObservedPtr<> so as to clear themselves when the embedder "exits"
+// the form fill environment.  Pointers from objects in this ownership
+// heirarcy to objects in the FPDF_Document ownership hierarcy should be
+// UnownedPtr<>, as should pointers from objects in this ownership
+// hierarcy back to the form fill environment itself, so as to flag any
+// lingering lifetime issues via the memory tools.
+
+class CPDFSDK_FormFillEnvironment final : public Observable,
+                                          public TimerHandlerIface,
+                                          public IPWL_SystemHandler {
+ public:
+  CPDFSDK_FormFillEnvironment(
+      CPDF_Document* pDoc,
+      FPDF_FORMFILLINFO* pFFinfo,
+      std::unique_ptr<CPDFSDK_AnnotHandlerMgr> pHandlerMgr);
+
+  ~CPDFSDK_FormFillEnvironment() override;
+
+  // TimerHandlerIface:
+  int32_t SetTimer(int32_t uElapse, TimerCallback lpTimerFunc) override;
+  void KillTimer(int32_t nTimerID) override;
+
+  // IPWL_SystemHandler:
+  void InvalidateRect(PerWindowData* pWidgetData,
+                      const CFX_FloatRect& rect) override;
+  void OutputSelectedRect(CFFL_FormFiller* pFormFiller,
+                          const CFX_FloatRect& rect) override;
+  bool IsSelectionImplemented() const override;
+  void SetCursor(int32_t nCursorType) override;
+
+  CPDFSDK_PageView* GetPageView(IPDF_Page* pUnderlyingPage, bool renew);
+  CPDFSDK_PageView* GetPageViewAtIndex(int nIndex);
+
+  void RemovePageView(IPDF_Page* pUnderlyingPage);
   void UpdateAllViews(CPDFSDK_PageView* pSender, CPDFSDK_Annot* pAnnot);
 
-  CPDFSDK_Annot* GetFocusAnnot() { return m_pFocusAnnot.Get(); }
-  bool SetFocusAnnot(CPDFSDK_Annot::ObservedPtr* pAnnot);
+  CPDFSDK_Annot* GetFocusAnnot() const { return m_pFocusAnnot.Get(); }
+  bool SetFocusAnnot(ObservedPtr<CPDFSDK_Annot>* pAnnot);
   bool KillFocusAnnot(uint32_t nFlag);
   void ClearAllFocusedAnnots();
 
-  bool ExtractPages(const std::vector<uint16_t>& arrExtraPages,
-                    CPDF_Document* pDstDoc);
-  bool InsertPages(int nInsertAt,
-                   const CPDF_Document* pSrcDoc,
-                   const std::vector<uint16_t>& arrSrcPages);
-  bool ReplacePages(int nPage,
-                    const CPDF_Document* pSrcDoc,
-                    const std::vector<uint16_t>& arrSrcPages);
+  int GetPageCount() const;
 
-  int GetPageCount() { return m_pUnderlyingDoc->GetPageCount(); }
-  bool GetPermissions(int nFlag);
+  // See PDF Reference 1.7, table 3.20 for the permission bits. Returns true if
+  // any bit in |flags| is set.
+  bool HasPermissions(uint32_t flags) const;
 
   bool GetChangeMark() const { return m_bChangeMask; }
   void SetChangeMark() { m_bChangeMask = true; }
   void ClearChangeMark() { m_bChangeMask = false; }
 
-  UnderlyingPageType* GetPage(int nIndex);
-
-  void ProcJavascriptFun();
+  void ProcJavascriptAction();
   bool ProcOpenAction();
-
-  void Invalidate(FPDF_PAGE page,
-                  double left,
-                  double top,
-                  double right,
-                  double bottom);
-  void OutputSelectedRect(FPDF_PAGE page,
-                          double left,
-                          double top,
-                          double right,
-                          double bottom);
-
-  void SetCursor(int nCursorType);
-  int SetTimer(int uElapse, TimerCallback lpTimerFunc);
-  void KillTimer(int nTimerID);
-  FX_SYSTEMTIME GetLocalTime() const;
+  void Invalidate(IPDF_Page* page, const FX_RECT& rect);
 
   void OnChange();
-  bool IsSHIFTKeyDown(uint32_t nFlag) const;
-  bool IsCTRLKeyDown(uint32_t nFlag) const;
-  bool IsALTKeyDown(uint32_t nFlag) const;
-
-  FPDF_PAGE GetPage(FPDF_DOCUMENT document, int nPageIndex);
-  FPDF_PAGE GetCurrentPage(FPDF_DOCUMENT document);
-
-  void ExecuteNamedAction(const FX_CHAR* namedAction);
+  void ExecuteNamedAction(const char* namedAction);
   void OnSetFieldInputFocus(FPDF_WIDESTRING focusText,
                             FPDF_DWORD nTextLen,
                             bool bFocus);
-  void DoURIAction(const FX_CHAR* bsURI);
+  void DoURIAction(const char* bsURI, uint32_t modifiers);
   void DoGoToAction(int nPageIndex,
                     int zoomMode,
                     float* fPosArray,
                     int sizeOfArray);
 
-  UnderlyingDocumentType* GetUnderlyingDocument() const {
-    return m_pUnderlyingDoc;
+  CPDF_Document* GetPDFDocument() const { return m_pCPDFDoc.Get(); }
+  CPDF_Document::Extension* GetDocExtension() const {
+    return m_pCPDFDoc->GetExtension();
   }
+
+  bool IsJSPlatformPresent() const { return m_pInfo && m_pInfo->m_pJsPlatform; }
+  IPDF_JSPLATFORM* GetJSPlatform() const {
+    return m_pInfo ? m_pInfo->m_pJsPlatform : nullptr;
+  }
+
+#ifdef PDF_ENABLE_V8
+  CPDFSDK_PageView* GetCurrentView();
+  FPDF_PAGE GetCurrentPage() const;
+
+  WideString GetLanguage();
+  WideString GetPlatform();
+
+  int JS_appAlert(const WideString& Msg,
+                  const WideString& Title,
+                  int Type,
+                  int Icon);
+  int JS_appResponse(const WideString& Question,
+                     const WideString& Title,
+                     const WideString& Default,
+                     const WideString& cLabel,
+                     FPDF_BOOL bPassword,
+                     void* response,
+                     int length);
+  void JS_appBeep(int nType);
+  WideString JS_fieldBrowse();
+  void JS_docmailForm(void* mailData,
+                      int length,
+                      FPDF_BOOL bUI,
+                      const WideString& To,
+                      const WideString& Subject,
+                      const WideString& CC,
+                      const WideString& BCC,
+                      const WideString& Msg);
+  void JS_docprint(FPDF_BOOL bUI,
+                   int nStart,
+                   int nEnd,
+                   FPDF_BOOL bSilent,
+                   FPDF_BOOL bShrinkToFit,
+                   FPDF_BOOL bPrintAsImage,
+                   FPDF_BOOL bReverse,
+                   FPDF_BOOL bAnnotations);
+  void JS_docgotoPage(int nPageNum);
+  WideString JS_docGetFilePath();
 
 #ifdef PDF_ENABLE_XFA
-  CPDF_Document* GetPDFDocument() const {
-    return m_pUnderlyingDoc ? m_pUnderlyingDoc->GetPDFDoc() : nullptr;
-  }
-
-  CPDFXFA_Context* GetXFAContext() const { return m_pUnderlyingDoc; }
-  void ResetXFADocument() { m_pUnderlyingDoc = nullptr; }
-
-  int GetPageViewCount() const { return m_PageMap.size(); }
-
-  void DisplayCaret(FPDF_PAGE page,
+  int GetPageViewCount() const;
+  void DisplayCaret(IPDF_Page* page,
                     FPDF_BOOL bVisible,
                     double left,
                     double top,
                     double right,
                     double bottom);
-  int GetCurrentPageIndex(FPDF_DOCUMENT document);
-  void SetCurrentPage(FPDF_DOCUMENT document, int iCurPage);
+  int GetCurrentPageIndex() const;
+  void SetCurrentPage(int iCurPage);
 
   // TODO(dsinclair): This should probably change to PDFium?
-  CFX_WideString FFI_GetAppName() const { return CFX_WideString(L"Acrobat"); }
+  WideString FFI_GetAppName() const { return WideString(L"Acrobat"); }
 
-  CFX_WideString GetPlatform();
-  void GotoURL(FPDF_DOCUMENT document, const CFX_WideStringC& wsURL);
-  void GetPageViewRect(FPDF_PAGE page, FS_RECTF& dstRect);
-  bool PopupMenu(FPDF_PAGE page,
-                 FPDF_WIDGET hWidget,
-                 int menuFlag,
-                 CFX_PointF pt);
-
-  void Alert(FPDF_WIDESTRING Msg, FPDF_WIDESTRING Title, int Type, int Icon);
+  void GotoURL(const WideString& wsURL);
+  FS_RECTF GetPageViewRect(IPDF_Page* page);
+  bool PopupMenu(IPDF_Page* page, int menuFlag, const CFX_PointF& pt);
   void EmailTo(FPDF_FILEHANDLER* fileHandler,
                FPDF_WIDESTRING pTo,
                FPDF_WIDESTRING pSubject,
@@ -149,80 +179,63 @@ class CPDFSDK_FormFillEnvironment
   FPDF_FILEHANDLER* OpenFile(int fileType,
                              FPDF_WIDESTRING wsURL,
                              const char* mode);
-  CFX_RetainPtr<IFX_SeekableReadStream> DownloadFromURL(const FX_WCHAR* url);
-  CFX_WideString PostRequestURL(const FX_WCHAR* wsURL,
-                                const FX_WCHAR* wsData,
-                                const FX_WCHAR* wsContentType,
-                                const FX_WCHAR* wsEncode,
-                                const FX_WCHAR* wsHeader);
-  FPDF_BOOL PutRequestURL(const FX_WCHAR* wsURL,
-                          const FX_WCHAR* wsData,
-                          const FX_WCHAR* wsEncode);
-  CFX_WideString GetLanguage();
+  RetainPtr<IFX_SeekableReadStream> DownloadFromURL(const WideString& url);
+  WideString PostRequestURL(const WideString& wsURL,
+                            const WideString& wsData,
+                            const WideString& wsContentType,
+                            const WideString& wsEncode,
+                            const WideString& wsHeader);
+  FPDF_BOOL PutRequestURL(const WideString& wsURL,
+                          const WideString& wsData,
+                          const WideString& wsEncode);
 
   void PageEvent(int iPageCount, uint32_t dwEventType) const;
-#else   // PDF_ENABLE_XFA
-  CPDF_Document* GetPDFDocument() const { return m_pUnderlyingDoc; }
 #endif  // PDF_ENABLE_XFA
+#endif  // PDF_ENABLE_V8
 
-  int JS_appAlert(const FX_WCHAR* Msg,
-                  const FX_WCHAR* Title,
-                  uint32_t Type,
-                  uint32_t Icon);
-  int JS_appResponse(const FX_WCHAR* Question,
-                     const FX_WCHAR* Title,
-                     const FX_WCHAR* Default,
-                     const FX_WCHAR* cLabel,
-                     FPDF_BOOL bPassword,
-                     void* response,
-                     int length);
-  void JS_appBeep(int nType);
-  CFX_WideString JS_fieldBrowse();
-  CFX_WideString JS_docGetFilePath();
-  void JS_docSubmitForm(void* formData, int length, const FX_WCHAR* URL);
-  void JS_docmailForm(void* mailData,
-                      int length,
-                      FPDF_BOOL bUI,
-                      const FX_WCHAR* To,
-                      const FX_WCHAR* Subject,
-                      const FX_WCHAR* CC,
-                      const FX_WCHAR* BCC,
-                      const FX_WCHAR* Msg);
-  void JS_docprint(FPDF_BOOL bUI,
-                   int nStart,
-                   int nEnd,
-                   FPDF_BOOL bSilent,
-                   FPDF_BOOL bShrinkToFit,
-                   FPDF_BOOL bPrintAsImage,
-                   FPDF_BOOL bReverse,
-                   FPDF_BOOL bAnnotations);
-  void JS_docgotoPage(int nPageNum);
-
-  bool IsJSInitiated() const { return m_pInfo && m_pInfo->m_pJsPlatform; }
-  CFX_ByteString GetAppName() const { return ""; }
-  CFX_SystemHandler* GetSysHandler() const { return m_pSysHandler.get(); }
+  WideString GetFilePath() const;
+  ByteString GetAppName() const { return ByteString(); }
+  TimerHandlerIface* GetTimerHandler() { return this; }
+  IPWL_SystemHandler* GetSysHandler() { return this; }
   FPDF_FORMFILLINFO* GetFormFillInfo() const { return m_pInfo; }
+  void SubmitForm(pdfium::span<uint8_t> form_data, const WideString& URL);
+
+  CPDFSDK_AnnotHandlerMgr* GetAnnotHandlerMgr();  // Always present.
+
+  void SetFocusableAnnotSubtypes(
+      const std::vector<CPDF_Annot::Subtype>& focusableAnnotTypes) {
+    m_FocusableAnnotTypes = focusableAnnotTypes;
+  }
+  const std::vector<CPDF_Annot::Subtype>& GetFocusableAnnotSubtypes() const {
+    return m_FocusableAnnotTypes;
+  }
 
   // Creates if not present.
   CFFL_InteractiveFormFiller* GetInteractiveFormFiller();
-  CPDFSDK_AnnotHandlerMgr* GetAnnotHandlerMgr();  // Creates if not present.
-  IJS_Runtime* GetJSRuntime();                    // Creates if not present.
-  CPDFSDK_ActionHandler* GetActionHander();       // Creates if not present.
-  CPDFSDK_InterForm* GetInterForm();              // Creates if not present.
+  IJS_Runtime* GetIJSRuntime();                   // Creates if not present.
+  CPDFSDK_ActionHandler* GetActionHandler();      // Creates if not present.
+  CPDFSDK_InteractiveForm* GetInteractiveForm();  // Creates if not present.
 
  private:
-  std::unique_ptr<CPDFSDK_AnnotHandlerMgr> m_pAnnotHandlerMgr;
-  std::unique_ptr<CPDFSDK_ActionHandler> m_pActionHandler;
-  std::unique_ptr<IJS_Runtime> m_pJSRuntime;
+  IPDF_Page* GetPage(int nIndex);
+  void SendOnFocusChange(ObservedPtr<CPDFSDK_Annot>* pAnnot);
+
   FPDF_FORMFILLINFO* const m_pInfo;
-  std::map<UnderlyingPageType*, std::unique_ptr<CPDFSDK_PageView>> m_PageMap;
-  std::unique_ptr<CPDFSDK_InterForm> m_pInterForm;
-  CPDFSDK_Annot::ObservedPtr m_pFocusAnnot;
-  UnderlyingDocumentType* m_pUnderlyingDoc;
+  std::unique_ptr<CPDFSDK_ActionHandler> m_pActionHandler;
+  std::unique_ptr<IJS_Runtime> m_pIJSRuntime;
+  std::map<IPDF_Page*, std::unique_ptr<CPDFSDK_PageView>> m_PageMap;
+  std::unique_ptr<CPDFSDK_InteractiveForm> m_pInteractiveForm;
+  ObservedPtr<CPDFSDK_Annot> m_pFocusAnnot;
+  UnownedPtr<CPDF_Document> const m_pCPDFDoc;
+  std::unique_ptr<CPDFSDK_AnnotHandlerMgr> m_pAnnotHandlerMgr;
   std::unique_ptr<CFFL_InteractiveFormFiller> m_pFormFiller;
-  std::unique_ptr<CFX_SystemHandler> m_pSysHandler;
-  bool m_bChangeMask;
-  bool m_bBeingDestroyed;
+  bool m_bChangeMask = false;
+  bool m_bBeingDestroyed = false;
+
+  // Holds the list of focusable annot types.
+  // Annotations of type WIDGET are by default focusable.
+  std::vector<CPDF_Annot::Subtype> m_FocusableAnnotTypes = {
+      CPDF_Annot::Subtype::WIDGET};
 };
 
 #endif  // FPDFSDK_CPDFSDK_FORMFILLENVIRONMENT_H_

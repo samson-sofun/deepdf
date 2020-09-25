@@ -7,16 +7,16 @@
 #ifndef CORE_FPDFAPI_PAGE_CPDF_PAGEOBJECT_H_
 #define CORE_FPDFAPI_PAGE_CPDF_PAGEOBJECT_H_
 
-#include "core/fpdfapi/page/cpdf_contentmark.h"
+#include "core/fpdfapi/page/cpdf_contentmarks.h"
 #include "core/fpdfapi/page/cpdf_graphicstates.h"
 #include "core/fxcrt/fx_coordinates.h"
 #include "core/fxcrt/fx_system.h"
 
-class CPDF_TextObject;
-class CPDF_PathObject;
-class CPDF_ImageObject;
-class CPDF_ShadingObject;
 class CPDF_FormObject;
+class CPDF_ImageObject;
+class CPDF_PathObject;
+class CPDF_ShadingObject;
+class CPDF_TextObject;
 
 class CPDF_PageObject : public CPDF_GraphicStates {
  public:
@@ -28,7 +28,11 @@ class CPDF_PageObject : public CPDF_GraphicStates {
     FORM,
   };
 
-  CPDF_PageObject();
+  static constexpr int32_t kNoContentStream = -1;
+
+  explicit CPDF_PageObject(int32_t content_stream);
+  CPDF_PageObject(const CPDF_PageObject& src) = delete;
+  CPDF_PageObject& operator=(const CPDF_PageObject& src) = delete;
   ~CPDF_PageObject() override;
 
   virtual Type GetType() const = 0;
@@ -49,22 +53,38 @@ class CPDF_PageObject : public CPDF_GraphicStates {
   virtual CPDF_FormObject* AsForm();
   virtual const CPDF_FormObject* AsForm() const;
 
-  void TransformClipPath(CFX_Matrix& matrix);
-  void TransformGeneralState(CFX_Matrix& matrix);
-  FX_RECT GetBBox(const CFX_Matrix* pMatrix) const;
+  void SetDirty(bool value) { m_bDirty = value; }
+  bool IsDirty() const { return m_bDirty; }
+  void TransformClipPath(const CFX_Matrix& matrix);
+  void TransformGeneralState(const CFX_Matrix& matrix);
 
-  FX_FLOAT m_Left;
-  FX_FLOAT m_Right;
-  FX_FLOAT m_Top;
-  FX_FLOAT m_Bottom;
-  CPDF_ContentMark m_ContentMark;
+  void SetRect(const CFX_FloatRect& rect) { m_Rect = rect; }
+  const CFX_FloatRect& GetRect() const { return m_Rect; }
+  FX_RECT GetBBox() const;
+  FX_RECT GetTransformedBBox(const CFX_Matrix& matrix) const;
+
+  // Get what content stream the object was parsed from in its page. This number
+  // is the index of the content stream in the "Contents" array, or 0 if there
+  // is a single content stream. If the object is newly created,
+  // |kNoContentStream| is returned.
+  //
+  // If the object is spread among more than one content stream, this is the
+  // index of the last stream.
+  int32_t GetContentStream() const { return m_ContentStream; }
+  void SetContentStream(int32_t new_content_stream) {
+    m_ContentStream = new_content_stream;
+  }
+
+  CPDF_ContentMarks m_ContentMarks;
 
  protected:
   void CopyData(const CPDF_PageObject* pSrcObject);
 
+  CFX_FloatRect m_Rect;
+
  private:
-  CPDF_PageObject(const CPDF_PageObject& src) = delete;
-  void operator=(const CPDF_PageObject& src) = delete;
+  bool m_bDirty = false;
+  int32_t m_ContentStream;
 };
 
 #endif  // CORE_FPDFAPI_PAGE_CPDF_PAGEOBJECT_H_

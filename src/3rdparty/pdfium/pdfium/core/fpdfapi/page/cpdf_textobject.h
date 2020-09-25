@@ -8,19 +8,25 @@
 #define CORE_FPDFAPI_PAGE_CPDF_TEXTOBJECT_H_
 
 #include <memory>
+#include <vector>
 
 #include "core/fpdfapi/page/cpdf_pageobject.h"
 #include "core/fxcrt/fx_string.h"
 #include "core/fxcrt/fx_system.h"
+#include "core/fxcrt/retain_ptr.h"
 
-struct CPDF_TextObjectItem {
+class CPDF_TextObjectItem {
+ public:
+  CPDF_TextObjectItem();
+  ~CPDF_TextObjectItem();
+
   uint32_t m_CharCode;
-  FX_FLOAT m_OriginX;
-  FX_FLOAT m_OriginY;
+  CFX_PointF m_Origin;
 };
 
-class CPDF_TextObject : public CPDF_PageObject {
+class CPDF_TextObject final : public CPDF_PageObject {
  public:
+  explicit CPDF_TextObject(int32_t content_stream);
   CPDF_TextObject();
   ~CPDF_TextObject() override;
 
@@ -32,39 +38,43 @@ class CPDF_TextObject : public CPDF_PageObject {
   const CPDF_TextObject* AsText() const override;
 
   std::unique_ptr<CPDF_TextObject> Clone() const;
-  int CountItems() const;
-  void GetItemInfo(int index, CPDF_TextObjectItem* pInfo) const;
-  int CountChars() const;
-  void GetCharInfo(int index, uint32_t& charcode, FX_FLOAT& kerning) const;
-  void GetCharInfo(int index, CPDF_TextObjectItem* pInfo) const;
-  FX_FLOAT GetCharWidth(uint32_t charcode) const;
-  FX_FLOAT GetPosX() const;
-  FX_FLOAT GetPosY() const;
-  void GetTextMatrix(CFX_Matrix* pMatrix) const;
-  CPDF_Font* GetFont() const;
-  FX_FLOAT GetFontSize() const;
 
-  void SetText(const CFX_ByteString& text);
-  void SetPosition(FX_FLOAT x, FX_FLOAT y);
+  size_t CountItems() const;
+  void GetItemInfo(size_t index, CPDF_TextObjectItem* pInfo) const;
+
+  size_t CountChars() const;
+  uint32_t GetCharCode(size_t index) const;
+  void GetCharInfo(size_t index, CPDF_TextObjectItem* pInfo) const;
+  float GetCharWidth(uint32_t charcode) const;
+  int CountWords() const;
+  WideString GetWordString(int nWordIndex) const;
+
+  CFX_PointF GetPos() const { return m_Pos; }
+  CFX_Matrix GetTextMatrix() const;
+
+  RetainPtr<CPDF_Font> GetFont() const;
+  float GetFontSize() const;
+
+  TextRenderingMode GetTextRenderMode() const;
+  void SetTextRenderMode(TextRenderingMode mode);
+
+  void SetText(const ByteString& str);
+  void SetPosition(const CFX_PointF& pos) { m_Pos = pos; }
 
   void RecalcPositionData();
 
- protected:
-  friend class CPDF_RenderStatus;
-  friend class CPDF_StreamContentParser;
-  friend class CPDF_TextRenderer;
+  const std::vector<uint32_t>& GetCharCodes() const { return m_CharCodes; }
+  const std::vector<float>& GetCharPositions() const { return m_CharPos; }
 
-  void SetSegments(const CFX_ByteString* pStrs, FX_FLOAT* pKerning, int nSegs);
+  void SetSegments(const ByteString* pStrs,
+                   const std::vector<float>& kernings,
+                   size_t nSegs);
+  CFX_PointF CalcPositionData(float horz_scale);
 
-  void CalcPositionData(FX_FLOAT* pTextAdvanceX,
-                        FX_FLOAT* pTextAdvanceY,
-                        FX_FLOAT horz_scale);
-
-  FX_FLOAT m_PosX;
-  FX_FLOAT m_PosY;
-  int m_nChars;
-  uint32_t* m_pCharCodes;
-  FX_FLOAT* m_pCharPos;
+ private:
+  CFX_PointF m_Pos;
+  std::vector<uint32_t> m_CharCodes;
+  std::vector<float> m_CharPos;
 };
 
 #endif  // CORE_FPDFAPI_PAGE_CPDF_TEXTOBJECT_H_

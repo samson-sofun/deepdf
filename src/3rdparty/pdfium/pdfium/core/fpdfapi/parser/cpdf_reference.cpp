@@ -7,35 +7,40 @@
 #include "core/fpdfapi/parser/cpdf_reference.h"
 
 #include "core/fpdfapi/parser/cpdf_indirect_object_holder.h"
-#include "third_party/base/ptr_util.h"
+#include "core/fxcrt/fx_stream.h"
 #include "third_party/base/stl_util.h"
 
 CPDF_Reference::CPDF_Reference(CPDF_IndirectObjectHolder* pDoc, uint32_t objnum)
     : m_pObjList(pDoc), m_RefObjNum(objnum) {}
 
-CPDF_Reference::~CPDF_Reference() {}
+CPDF_Reference::~CPDF_Reference() = default;
 
 CPDF_Object::Type CPDF_Reference::GetType() const {
-  return REFERENCE;
+  return kReference;
 }
 
-CFX_ByteString CPDF_Reference::GetString() const {
-  CPDF_Object* obj = SafeGetDirect();
-  return obj ? obj->GetString() : CFX_ByteString();
+ByteString CPDF_Reference::GetString() const {
+  const CPDF_Object* obj = SafeGetDirect();
+  return obj ? obj->GetString() : ByteString();
 }
 
-FX_FLOAT CPDF_Reference::GetNumber() const {
-  CPDF_Object* obj = SafeGetDirect();
+float CPDF_Reference::GetNumber() const {
+  const CPDF_Object* obj = SafeGetDirect();
   return obj ? obj->GetNumber() : 0;
 }
 
 int CPDF_Reference::GetInteger() const {
-  CPDF_Object* obj = SafeGetDirect();
+  const CPDF_Object* obj = SafeGetDirect();
   return obj ? obj->GetInteger() : 0;
 }
 
-CPDF_Dictionary* CPDF_Reference::GetDict() const {
+CPDF_Dictionary* CPDF_Reference::GetDict() {
   CPDF_Object* obj = SafeGetDirect();
+  return obj ? obj->GetDict() : nullptr;
+}
+
+const CPDF_Dictionary* CPDF_Reference::GetDict() const {
+  const CPDF_Object* obj = SafeGetDirect();
   return obj ? obj->GetDict() : nullptr;
 }
 
@@ -51,25 +56,30 @@ const CPDF_Reference* CPDF_Reference::AsReference() const {
   return this;
 }
 
-std::unique_ptr<CPDF_Object> CPDF_Reference::Clone() const {
+RetainPtr<CPDF_Object> CPDF_Reference::Clone() const {
   return CloneObjectNonCyclic(false);
 }
 
-std::unique_ptr<CPDF_Object> CPDF_Reference::CloneNonCyclic(
+RetainPtr<CPDF_Object> CPDF_Reference::CloneNonCyclic(
     bool bDirect,
     std::set<const CPDF_Object*>* pVisited) const {
   pVisited->insert(this);
   if (bDirect) {
     auto* pDirect = GetDirect();
-    return pDirect && !pdfium::ContainsKey(*pVisited, pDirect)
+    return pDirect && !pdfium::Contains(*pVisited, pDirect)
                ? pDirect->CloneNonCyclic(true, pVisited)
                : nullptr;
   }
-  return pdfium::MakeUnique<CPDF_Reference>(m_pObjList, m_RefObjNum);
+  return pdfium::MakeRetain<CPDF_Reference>(m_pObjList.Get(), m_RefObjNum);
 }
 
-CPDF_Object* CPDF_Reference::SafeGetDirect() const {
+CPDF_Object* CPDF_Reference::SafeGetDirect() {
   CPDF_Object* obj = GetDirect();
+  return (obj && !obj->IsReference()) ? obj : nullptr;
+}
+
+const CPDF_Object* CPDF_Reference::SafeGetDirect() const {
+  const CPDF_Object* obj = GetDirect();
   return (obj && !obj->IsReference()) ? obj : nullptr;
 }
 
@@ -78,7 +88,26 @@ void CPDF_Reference::SetRef(CPDF_IndirectObjectHolder* pDoc, uint32_t objnum) {
   m_RefObjNum = objnum;
 }
 
-CPDF_Object* CPDF_Reference::GetDirect() const {
+CPDF_Object* CPDF_Reference::GetDirect() {
   return m_pObjList ? m_pObjList->GetOrParseIndirectObject(m_RefObjNum)
                     : nullptr;
+}
+
+const CPDF_Object* CPDF_Reference::GetDirect() const {
+  return m_pObjList ? m_pObjList->GetOrParseIndirectObject(m_RefObjNum)
+                    : nullptr;
+}
+
+bool CPDF_Reference::WriteTo(IFX_ArchiveStream* archive,
+                             const CPDF_Encryptor* encryptor) const {
+  return archive->WriteString(" ") && archive->WriteDWord(GetRefObjNum()) &&
+         archive->WriteString(" 0 R ");
+}
+
+RetainPtr<CPDF_Object> CPDF_Reference::MakeReference(
+    CPDF_IndirectObjectHolder* holder) const {
+  ASSERT(holder == m_pObjList);
+  // Do not allow reference to reference, just create other reference for same
+  // object.
+  return pdfium::MakeRetain<CPDF_Reference>(holder, GetRefObjNum());
 }

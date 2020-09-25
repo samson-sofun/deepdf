@@ -9,25 +9,28 @@
 
 #include "core/fxcrt/fx_system.h"
 
-struct CPVT_LineInfo {
-  CPVT_LineInfo()
-      : nTotalWord(0),
-        nBeginWordIndex(-1),
-        nEndWordIndex(-1),
-        fLineX(0.0f),
-        fLineY(0.0f),
-        fLineWidth(0.0f),
-        fLineAscent(0.0f),
-        fLineDescent(0.0f) {}
+class CPVT_LineInfo {
+ public:
+  CPVT_LineInfo();
 
   int32_t nTotalWord;
   int32_t nBeginWordIndex;
   int32_t nEndWordIndex;
-  FX_FLOAT fLineX;
-  FX_FLOAT fLineY;
-  FX_FLOAT fLineWidth;
-  FX_FLOAT fLineAscent;
-  FX_FLOAT fLineDescent;
+  float fLineX;
+  float fLineY;
+  float fLineWidth;
+  float fLineAscent;
+  float fLineDescent;
 };
+
+inline CPVT_LineInfo::CPVT_LineInfo()
+    : nTotalWord(0),
+      nBeginWordIndex(-1),
+      nEndWordIndex(-1),
+      fLineX(0.0f),
+      fLineY(0.0f),
+      fLineWidth(0.0f),
+      fLineAscent(0.0f),
+      fLineDescent(0.0f) {}
 
 #endif  // CORE_FPDFDOC_CPVT_LINEINFO_H_

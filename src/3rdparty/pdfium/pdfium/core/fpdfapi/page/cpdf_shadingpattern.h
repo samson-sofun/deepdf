@@ -10,10 +10,13 @@
 #include <memory>
 #include <vector>
 
-#include "core/fpdfapi/page/cpdf_countedobject.h"
+#include "core/fpdfapi/page/cpdf_colorspace.h"
 #include "core/fpdfapi/page/cpdf_pattern.h"
 #include "core/fxcrt/fx_system.h"
+#include "core/fxcrt/retain_ptr.h"
 
+// Values used in PDFs except for |kInvalidShading| and |kMaxShading|.
+// Do not change.
 enum ShadingType {
   kInvalidShading = 0,
   kFunctionBasedShading = 1,
@@ -32,15 +35,12 @@ class CPDF_Document;
 class CPDF_Function;
 class CPDF_Object;
 
-class CPDF_ShadingPattern : public CPDF_Pattern {
+class CPDF_ShadingPattern final : public CPDF_Pattern {
  public:
-  CPDF_ShadingPattern(CPDF_Document* pDoc,
-                      CPDF_Object* pPatternObj,
-                      bool bShading,
-                      const CFX_Matrix& parentMatrix);
+  CONSTRUCT_VIA_MAKE_RETAIN;
   ~CPDF_ShadingPattern() override;
 
-  CPDF_TilingPattern* AsTilingPattern() override;
+  // CPDF_Pattern:
   CPDF_ShadingPattern* AsShadingPattern() override;
 
   bool IsMeshShading() const {
@@ -52,23 +52,30 @@ class CPDF_ShadingPattern : public CPDF_Pattern {
   bool Load();
 
   ShadingType GetShadingType() const { return m_ShadingType; }
-  bool IsShadingObject() const { return m_bShadingObj; }
-  CPDF_Object* GetShadingObject() const { return m_pShadingObj; }
-  CPDF_ColorSpace* GetCS() const { return m_pCS; }
+  bool IsShadingObject() const { return m_bShading; }
+  const CPDF_Object* GetShadingObject() const;
+  RetainPtr<CPDF_ColorSpace> GetCS() const { return m_pCS; }
   const std::vector<std::unique_ptr<CPDF_Function>>& GetFuncs() const {
     return m_pFunctions;
   }
 
  private:
-  ShadingType m_ShadingType;
-  bool m_bShadingObj;
-  CPDF_Object* m_pShadingObj;
+  CPDF_ShadingPattern(CPDF_Document* pDoc,
+                      CPDF_Object* pPatternObj,
+                      bool bShading,
+                      const CFX_Matrix& parentMatrix);
+  CPDF_ShadingPattern(const CPDF_ShadingPattern&) = delete;
+  CPDF_ShadingPattern& operator=(const CPDF_ShadingPattern&) = delete;
 
-  // Still keep |m_pCS| as some CPDF_ColorSpace (name object) are not managed
-  // as counted objects. Refer to CPDF_DocPageData::GetColorSpace.
-  CPDF_ColorSpace* m_pCS;
+  // Constraints in PDF 1.7 spec, 4.6.3 Shading Patterns, pages 308-331.
+  bool Validate() const;
+  bool ValidateFunctions(uint32_t nExpectedNumFunctions,
+                         uint32_t nExpectedNumInputs,
+                         uint32_t nExpectedNumOutputs) const;
 
-  CPDF_CountedColorSpace* m_pCountedCS;
+  ShadingType m_ShadingType = kInvalidShading;
+  const bool m_bShading;
+  RetainPtr<CPDF_ColorSpace> m_pCS;
   std::vector<std::unique_ptr<CPDF_Function>> m_pFunctions;
 };
 

@@ -7,35 +7,33 @@
 #ifndef CORE_FPDFAPI_PAGE_CPDF_IMAGE_H_
 #define CORE_FPDFAPI_PAGE_CPDF_IMAGE_H_
 
-#include <memory>
-
-#include "core/fpdfapi/parser/cpdf_stream.h"
-#include "core/fxcrt/cfx_maybe_owned.h"
 #include "core/fxcrt/fx_system.h"
+#include "core/fxcrt/retain_ptr.h"
+#include "core/fxcrt/unowned_ptr.h"
+#include "third_party/base/span.h"
 
-class CFX_DIBSource;
+class CFX_DIBBase;
 class CFX_DIBitmap;
+class CPDF_Dictionary;
 class CPDF_Document;
 class CPDF_Page;
-class IFX_Pause;
+class CPDF_Stream;
+class PauseIndicatorIface;
 class IFX_SeekableReadStream;
 
-class CPDF_Image {
+class CPDF_Image final : public Retainable {
  public:
-  explicit CPDF_Image(CPDF_Document* pDoc);
-  CPDF_Image(CPDF_Document* pDoc, std::unique_ptr<CPDF_Stream> pStream);
-  CPDF_Image(CPDF_Document* pDoc, uint32_t dwStreamObjNum);
-  ~CPDF_Image();
+  CONSTRUCT_VIA_MAKE_RETAIN;
+
+  static bool IsValidJpegComponent(int32_t comps);
+  static bool IsValidJpegBitsPerComponent(int32_t bpc);
 
   void ConvertStreamToIndirectObject();
 
-  CPDF_Dictionary* GetInlineDict() const { return m_pDict.Get(); }
+  CPDF_Dictionary* GetDict() const;
   CPDF_Stream* GetStream() const { return m_pStream.Get(); }
-  CPDF_Dictionary* GetDict() const {
-    return m_pStream ? m_pStream->GetDict() : nullptr;
-  }
-  CPDF_Dictionary* GetOC() const { return m_pOC; }
-  CPDF_Document* GetDocument() const { return m_pDocument; }
+  const CPDF_Dictionary* GetOC() const { return m_pOC.Get(); }
+  CPDF_Document* GetDocument() const { return m_pDocument.Get(); }
 
   int32_t GetPixelHeight() const { return m_Height; }
   int32_t GetPixelWidth() const { return m_Width; }
@@ -44,40 +42,50 @@ class CPDF_Image {
   bool IsMask() const { return m_bIsMask; }
   bool IsInterpol() const { return m_bInterpolate; }
 
-  std::unique_ptr<CFX_DIBSource> LoadDIBSource() const;
+  RetainPtr<CFX_DIBBase> LoadDIBBase() const;
 
-  void SetImage(const CFX_DIBitmap* pDIBitmap);
-  void SetJpegImage(const CFX_RetainPtr<IFX_SeekableReadStream>& pFile);
-  void SetJpegImageInline(const CFX_RetainPtr<IFX_SeekableReadStream>& pFile);
+  void SetImage(const RetainPtr<CFX_DIBitmap>& pBitmap);
+  void SetJpegImage(const RetainPtr<IFX_SeekableReadStream>& pFile);
+  void SetJpegImageInline(const RetainPtr<IFX_SeekableReadStream>& pFile);
 
-  void ResetCache(CPDF_Page* pPage, const CFX_DIBitmap* pDIBitmap);
+  void ResetCache(CPDF_Page* pPage);
 
-  bool StartLoadDIBSource(CPDF_Dictionary* pFormResource,
-                          CPDF_Dictionary* pPageResource,
-                          bool bStdCS = false,
-                          uint32_t GroupFamily = 0,
-                          bool bLoadMask = false);
-  bool Continue(IFX_Pause* pPause);
-  CFX_DIBSource* DetachBitmap();
-  CFX_DIBSource* DetachMask();
+  // Returns whether to Continue() or not.
+  bool StartLoadDIBBase(const CPDF_Dictionary* pFormResource,
+                        const CPDF_Dictionary* pPageResource,
+                        bool bStdCS,
+                        uint32_t GroupFamily,
+                        bool bLoadMask);
 
-  CFX_DIBSource* m_pDIBSource = nullptr;
-  CFX_DIBSource* m_pMask = nullptr;
+  // Returns whether to Continue() or not.
+  bool Continue(PauseIndicatorIface* pPause);
+
+  RetainPtr<CFX_DIBBase> DetachBitmap();
+  RetainPtr<CFX_DIBBase> DetachMask();
+
+  RetainPtr<CFX_DIBBase> m_pDIBBase;
+  RetainPtr<CFX_DIBBase> m_pMask;
   uint32_t m_MatteColor = 0;
 
  private:
-  void FinishInitialization();
-  std::unique_ptr<CPDF_Dictionary> InitJPEG(uint8_t* pData, uint32_t size);
+  explicit CPDF_Image(CPDF_Document* pDoc);
+  CPDF_Image(CPDF_Document* pDoc, RetainPtr<CPDF_Stream> pStream);
+  CPDF_Image(CPDF_Document* pDoc, uint32_t dwStreamObjNum);
+  ~CPDF_Image() override;
+
+  void FinishInitialization(CPDF_Dictionary* pStreamDict);
+  RetainPtr<CPDF_Dictionary> InitJPEG(pdfium::span<uint8_t> src_span);
+
+  RetainPtr<CPDF_Dictionary> CreateXObjectImageDict(int width, int height);
 
   int32_t m_Height = 0;
   int32_t m_Width = 0;
   bool m_bIsInline = false;
   bool m_bIsMask = false;
   bool m_bInterpolate = false;
-  CPDF_Document* const m_pDocument;
-  CFX_MaybeOwned<CPDF_Stream> m_pStream;
-  CFX_MaybeOwned<CPDF_Dictionary> m_pDict;
-  CPDF_Dictionary* m_pOC = nullptr;
+  UnownedPtr<CPDF_Document> const m_pDocument;
+  RetainPtr<CPDF_Stream> m_pStream;
+  RetainPtr<const CPDF_Dictionary> m_pOC;
 };
 
 #endif  // CORE_FPDFAPI_PAGE_CPDF_IMAGE_H_
