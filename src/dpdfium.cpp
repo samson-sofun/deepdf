@@ -1,8 +1,11 @@
 #include "dpdfium.h"
 #include "public/fpdfview.h"
-#include "core/fpdfapi/parser/cpdf_document.h"
-#include "core/fpdfapi/page/cpdf_page.h"
+
+#include "core/fpdfdoc/cpdf_bookmark.h"
+#include "core/fpdfdoc/cpdf_bookmarktree.h"
+
 #include <QFile>
+#include <QDebug>
 
 QT_BEGIN_NAMESPACE
 
@@ -21,7 +24,8 @@ DPdfium::DPdfium(QString filename, QString password)
     loadFile(filename, password);
 }
 
-DPdfium::~DPdfium() {
+DPdfium::~DPdfium()
+{
     m_pages.clear();
     m_document.clear();
 }
@@ -38,30 +42,29 @@ DPdfium::Status DPdfium::loadFile(QString filename, QString password)
     m_pages.clear();
     m_document.clear();
 
-    // Pdfium API enable creating new pdfs, but
-    // we are using only for read. So we will
-    // return error if file does not exists
     if (!QFile::exists(filename)) {
         m_status = FILE_NOT_FOUND_ERROR;
         return m_status;
     }
 
-    void* ptr = FPDF_LoadDocument(m_filename.toUtf8().constData(),
+    void *ptr = FPDF_LoadDocument(m_filename.toUtf8().constData(),
                                   password.toUtf8().constData());
-    auto doc = static_cast<CPDF_Document*>(ptr);
 
+    auto doc = static_cast<FPDF_Document *>(ptr);
     m_document.reset(doc);
     m_status = m_document ? SUCCESS : parseError(FPDF_GetLastError());
 
-    if (m_document){
-        m_pageCount = m_document->GetPageCount();
+
+    if (m_document) {
+        m_pageCount = FPDF_GetPageCount((FPDF_DOCUMENT)m_document.data());
         m_pages.resize(m_pageCount);
     }
 
     return m_status;
 }
 
-DPdfium::Status DPdfium::parseError(int err) {
+DPdfium::Status DPdfium::parseError(int err)
+{
     DPdfium::Status err_code = DPdfium::SUCCESS;
     // Translate FPDFAPI error code to FPDFVIEW error code
     switch (err) {
@@ -99,18 +102,58 @@ DPdfium::Status DPdfium::status() const
     return m_status;
 }
 
-DPdfiumPage DPdfium::page(int i)
+DPdfiumPage *DPdfium::page(int i)
 {
-    Q_ASSERT( i < m_pageCount && i >=0 );
+    if (i < 0 || i >= m_pageCount)
+        return nullptr;
 
     auto strongRef = m_pages[i].toStrongRef();
     if (!strongRef)
         strongRef.reset(new PageHolder(m_document.toWeakRef(),
-                                       static_cast<CPDF_Page*>
-                                       (FPDF_LoadPage(m_document.data(), i))));
+                                       reinterpret_cast<FPDF_Page *>(FPDF_LoadPage((FPDF_DOCUMENT)m_document.data(), i))));
 
     m_pages[i] = strongRef.toWeakRef();
-    return DPdfiumPage(strongRef, i);
+    return new DPdfiumPage(strongRef, i);
+}
+
+void collectBookmarks(DPdfium::Outline &outline, const CPDF_BookmarkTree &tree, CPDF_Bookmark This)
+{
+    DPdfium::Section section;
+
+    const WideString &title = This.GetTitle();
+    section.title = QString::fromWCharArray(title.c_str(), title.GetLength());
+
+    CPDF_Dest &&dest = This.GetDest(tree.GetDocument());
+    section.nIndex = dest.GetDestPageIndex(tree.GetDocument());
+
+    bool hasx = false, hasy = false, haszoom = false;
+    float x = 0.0, y = 0.0, z = 0.0;
+    dest.GetXYZ(&hasx, &hasy, &haszoom, &x, &y, &z);
+    section.offsetPointF = QPointF(x, y);
+
+    const CPDF_Bookmark &Child = tree.GetFirstChild(&This);
+    if (Child.GetDict() != NULL) {
+        collectBookmarks(section.children, tree, Child);
+    }
+    outline << section;
+    qDebug() << "outline  = " << section.title << section.nIndex << section.offsetPointF;
+
+    const CPDF_Bookmark &SibChild = tree.GetNextSibling(&This);
+    if (SibChild.GetDict() != NULL) {
+        collectBookmarks(outline, tree, SibChild);
+    }
+}
+
+DPdfium::Outline DPdfium::outline()
+{
+    Outline outline;
+    CPDF_BookmarkTree tree(reinterpret_cast<CPDF_Document *>(m_document.data()));
+    CPDF_Bookmark cBookmark;
+    const CPDF_Bookmark &firstRootChild = tree.GetFirstChild(&cBookmark);
+    if (firstRootChild.GetDict() != NULL)
+        collectBookmarks(outline, tree, firstRootChild);
+
+    return outline;
 }
 
 QT_END_NAMESPACE
