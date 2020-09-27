@@ -12,8 +12,9 @@
 
 class DPdfiumPage;
 class DPdfiumDocumentHandler;
-class DEEPIN_PDFIUM_EXPORT DPdfium
+class DEEPIN_PDFIUM_EXPORT DPdfium : public QObject
 {
+    Q_OBJECT
 public:
     enum Status {
         NOT_LOADED = -1,
@@ -103,7 +104,7 @@ private:
     Q_DISABLE_COPY(DPdfium)
 
     DPdfiumDocumentHandler *m_documentHandler = nullptr;
-    QVector<DPdfiumPage*> m_pages;
+    QVector<DPdfiumPage *> m_pages;
     QString m_filename;
     int m_pageCount;
     Status m_status;

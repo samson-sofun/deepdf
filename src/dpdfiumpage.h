@@ -11,8 +11,9 @@ class DPdfium;
 class DAnnotation;
 class DPdfiumPagePrivate;
 class DPdfiumDocumentHandler;
-class DEEPIN_PDFIUM_EXPORT DPdfiumPage
+class DEEPIN_PDFIUM_EXPORT DPdfiumPage : public QObject
 {
+    Q_OBJECT
     Q_DECLARE_PRIVATE(DPdfiumPage)
 public:
     ~DPdfiumPage();
