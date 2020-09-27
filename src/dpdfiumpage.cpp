@@ -1,5 +1,6 @@
 #include "dpdfiumpage.h"
 #include "dpdfium.h"
+#include "dannotation.h"
 
 #include "public/fpdfview.h"
 #include "public/fpdf_text.h"
@@ -13,8 +14,9 @@
 
 class DPdfiumPagePrivate
 {
+    friend class DPdfiumPage;
 public:
-    DPdfiumPagePrivate(DPdfiumDocumentHandler *handler,int index);
+    DPdfiumPagePrivate(DPdfiumDocumentHandler *handler, int index);
 
     ~DPdfiumPagePrivate();
 
@@ -38,10 +40,9 @@ DPdfiumPagePrivate::DPdfiumPagePrivate(DPdfiumDocumentHandler *handler, int inde
 
     int annotCount = FPDFPage_GetAnnotCount(m_page);
 
-    for(int i = 0;i < annotCount; ++i)
-    {
-         m_annotations.append(FPDFPage_GetAnnot(m_page,i));
-     }
+    for (int i = 0; i < annotCount; ++i) {
+        m_annotations.append(FPDFPage_GetAnnot(m_page, i));
+    }
 }
 
 DPdfiumPagePrivate::~DPdfiumPagePrivate()
@@ -49,8 +50,7 @@ DPdfiumPagePrivate::~DPdfiumPagePrivate()
     if (m_textPage)
         FPDFText_ClosePage(m_textPage);
 
-    for(FPDF_ANNOTATION annot:m_annotations)
-    {
+    for (FPDF_ANNOTATION annot : m_annotations) {
         FPDFPage_CloseAnnot(annot);
     }
 
@@ -59,7 +59,7 @@ DPdfiumPagePrivate::~DPdfiumPagePrivate()
 }
 
 DPdfiumPage::DPdfiumPage(DPdfiumDocumentHandler *handler, int pageIndex)
-    : m_private(new DPdfiumPagePrivate(handler,pageIndex))
+    : m_private(new DPdfiumPagePrivate(handler, pageIndex))
     , m_index(pageIndex)
 {
 
@@ -186,12 +186,21 @@ QString DPdfiumPage::label() const
 
 QList<DAnnotation *> DPdfiumPage::annotations()
 {
-    QList<DAnnotation *> annotations();
-    return m_private->m_annotations;
+    QList<DAnnotation *> annotations;
+    for (FPDF_ANNOTATION annot : m_private->m_annotations) {
+        FS_RECTF fRectF;
+        DAnnotation *dAnnotation = new DAnnotation;
+        if (FPDFAnnot_GetRect(annot, &fRectF)) {
+            dAnnotation->setBoundary(QRectF(fRectF.left, fRectF.top, (fRectF.right - fRectF.left), (fRectF.bottom - fRectF.top)));
+        }
+        annotations.append(dAnnotation);
+    }
+
+    return annotations;
 }
 
 bool DPdfiumPage::deleteAnnotation(int index)
 {
-    return FPDFPage_RemoveAnnot(m_private->m_page,index);
+    return FPDFPage_RemoveAnnot(m_private->m_page, index);
 }
 
