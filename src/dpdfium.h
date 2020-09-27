@@ -85,6 +85,14 @@ public:
 
     /**
      * @brief 文档属性信息
+     * Keys:
+     * Version
+     * Encrypted
+     * Linearized
+     * KeyWords
+     * Title
+     * Creator
+     * Producer
      * @return
      */
     Properies proeries();
