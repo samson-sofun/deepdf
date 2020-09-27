@@ -8,9 +8,8 @@
 class DEEPIN_PDFIUM_EXPORT DAnnotation
 {
 public:
-    DAnnotation();
-
     enum AnnotationType {
+        AUnknown = 0,         ///< 前期支持以外的
         AText = 1,            ///< TextAnnotation
         AHighlight = 2,       ///< HighlightAnnotation
         ALink = 3
@@ -29,7 +28,11 @@ public:
     void setBoundary(const QRectF &boundary);
 
 private:
+    friend class DPdfiumPagePrivate;
+    DAnnotation(int type);
+
     int m_type;
+    QRectF m_boundary;
 };
 
 

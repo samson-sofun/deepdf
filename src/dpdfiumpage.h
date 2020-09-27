@@ -13,6 +13,7 @@ class DPdfiumPagePrivate;
 class DPdfiumDocumentHandler;
 class DEEPIN_PDFIUM_EXPORT DPdfiumPage
 {
+    Q_DECLARE_PRIVATE(DPdfiumPage)
 public:
     ~DPdfiumPage();
 
@@ -29,13 +30,6 @@ public:
      * @return
      */
     qreal height() const;
-
-    /**
-     * @brief isValid
-     * 当页是否有效
-     * @return
-     */
-    bool isValid() const;
 
     /**
      * @brief pageIndex
@@ -98,14 +92,36 @@ public:
      */
     QString label() const;
 
-    QList<DAnnotation*> annotations();
+    /**
+     * @brief 获取当前所有注释
+     * @return
+     */
+    QList<DAnnotation *> annotations();
 
-    bool deleteAnnotation(int index);
+    /**
+     * @brief 删除注释
+     * @param annot 即将删除的注释指针，执行成功传入的指针会被删除
+     * @return
+     */
+    bool removeAnnotation(DAnnotation *annot);
+
+signals:
+    /**
+     * @brief 添加注释时触发 ，在需要的时候可以重新获取annotations()
+     * @param 增加后的index
+     */
+    void annotationAdded(int index);
+
+    /**
+     * @brief 注释被删除时触发 ，在需要的时候可以重新获取annotations()
+     * @param index 被移除的index
+     */
+    void annotationRemoved(int index);
 
 private:
     DPdfiumPage(DPdfiumDocumentHandler *handler, int pageIndex);
 
-    QSharedPointer<DPdfiumPagePrivate> m_private;
+    QScopedPointer<DPdfiumPagePrivate> d_ptr;
 
     int m_index;
 
