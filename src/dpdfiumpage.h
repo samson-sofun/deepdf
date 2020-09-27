@@ -8,27 +8,13 @@
 #include "dpdfiumglobal.h"
 
 class DPdfium;
-class FPDF_Page;
-class FPDF_TextPage;
-class FPDF_Document;
-
-class PageHolder
-{
-public:
-    QWeakPointer<FPDF_Document> m_doc;
-    FPDF_Page *m_page;
-    FPDF_TextPage *m_textPage;
-    int i;
-    PageHolder(QWeakPointer<FPDF_Document> doc, FPDF_Page *page);
-    ~PageHolder();
-};
-
+class DAnnotation;
+class DPdfiumPagePrivate;
+class DPdfiumDocumentHandler;
 class DEEPIN_PDFIUM_EXPORT DPdfiumPage
 {
 public:
-    DPdfiumPage(const DPdfiumPage &other);
-    DPdfiumPage &operator=(const DPdfiumPage &other);
-    virtual ~DPdfiumPage();
+    ~DPdfiumPage();
 
     /**
      * @brief width
@@ -59,8 +45,7 @@ public:
     int pageIndex() const;
 
     /**
-     * @brief image
-     * 获取范围内图片
+     * @brief 获取范围内图片
      * @param scale
      * @return
      */
@@ -113,10 +98,15 @@ public:
      */
     QString label() const;
 
-private:
-    DPdfiumPage(QSharedPointer<PageHolder> page, int pageIndex);
+    QList<DAnnotation*> annotations();
 
-    QSharedPointer<PageHolder> m_pageHolder;
+    bool deleteAnnotation(int index);
+
+private:
+    DPdfiumPage(DPdfiumDocumentHandler *handler, int pageIndex);
+
+    QSharedPointer<DPdfiumPagePrivate> m_private;
+
     int m_index;
 
     friend class DPdfium;

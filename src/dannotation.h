@@ -11,8 +11,9 @@ public:
     DAnnotation();
 
     enum AnnotationType {
-        IconAnnotation = 1,            ///< IconAnnotation
-        HighlightAnnotation = 2,       ///< HighlightAnnotation
+        AText = 1,            ///< TextAnnotation
+        AHighlight = 2,       ///< HighlightAnnotation
+        ALink = 3
     };
 
     /**
@@ -27,15 +28,9 @@ public:
      */
     void setBoundary(const QRectF &boundary);
 
+private:
+    int m_type;
 };
 
-/**
- * Showing some text using an icon shown on a page.
- */
-class DIconAnnotation : public DAnnotation
-{
-public:
-    DIconAnnotation();
-};
 
 #endif // DANNOTATION_H

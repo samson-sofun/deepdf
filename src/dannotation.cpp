@@ -1,5 +1,7 @@
 #include "dannotation.h"
 
+#include "public/fpdf_annot.h"
+
 DAnnotation::DAnnotation()
 {
 
@@ -11,11 +13,6 @@ QRectF DAnnotation::boundary() const
 }
 
 void DAnnotation::setBoundary(const QRectF &boundary)
-{
-
-}
-
-DIconAnnotation::DIconAnnotation():DAnnotation()
 {
 
 }

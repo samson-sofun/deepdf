@@ -1,17 +1,17 @@
 #ifndef DPdfium_H
 #define DPdfium_H
 
+#include "dpdfiumglobal.h"
+
 #include <QObject>
 #include <QMap>
 #include <QWeakPointer>
 #include <QSharedPointer>
 #include <QVector>
+#include <QPointF>
 
-#include "dpdfiumpage.h"
-
-class FPDF_Document;
-class PageHolder;
-
+class DPdfiumPage;
+class DPdfiumDocumentHandler;
 class DEEPIN_PDFIUM_EXPORT DPdfium
 {
 public:
@@ -102,8 +102,8 @@ public Q_SLOTS:
 private:
     Q_DISABLE_COPY(DPdfium)
 
-    QSharedPointer<FPDF_Document> m_document;
-    QVector<QWeakPointer<PageHolder>> m_pages;
+    DPdfiumDocumentHandler *m_documentHandler = nullptr;
+    QVector<DPdfiumPage*> m_pages;
     QString m_filename;
     int m_pageCount;
     Status m_status;

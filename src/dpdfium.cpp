@@ -1,5 +1,6 @@
 #include "dpdfium.h"
 #include "public/fpdfview.h"
+#include "dpdfiumpage.h"
 
 #include "core/fpdfdoc/cpdf_bookmark.h"
 #include "core/fpdfdoc/cpdf_bookmarktree.h"
@@ -7,17 +8,15 @@
 #include <QFile>
 #include <QDebug>
 
-QT_BEGIN_NAMESPACE
-
 DPdfium::DPdfium()
-    : m_document(nullptr)
+    : m_documentHandler(nullptr)
     , m_pageCount(0)
     , m_status(NOT_LOADED)
 {
 }
 
 DPdfium::DPdfium(QString filename, QString password)
-    : m_document(nullptr)
+    : m_documentHandler(nullptr)
     , m_pageCount(0)
     , m_status(NOT_LOADED)
 {
@@ -27,12 +26,14 @@ DPdfium::DPdfium(QString filename, QString password)
 DPdfium::~DPdfium()
 {
     m_pages.clear();
-    m_document.clear();
+
+    if(nullptr != m_documentHandler)
+        FPDF_CloseDocument((FPDF_DOCUMENT)m_documentHandler);
 }
 
 bool DPdfium::isValid() const
 {
-    return m_document != NULL;
+    return m_documentHandler != NULL;
 }
 
 DPdfium::Status DPdfium::loadFile(QString filename, QString password)
@@ -40,7 +41,6 @@ DPdfium::Status DPdfium::loadFile(QString filename, QString password)
     m_filename = filename;
 
     m_pages.clear();
-    m_document.clear();
 
     if (!QFile::exists(filename)) {
         m_status = FILE_NOT_FOUND_ERROR;
@@ -50,14 +50,18 @@ DPdfium::Status DPdfium::loadFile(QString filename, QString password)
     void *ptr = FPDF_LoadDocument(m_filename.toUtf8().constData(),
                                   password.toUtf8().constData());
 
-    auto doc = static_cast<FPDF_Document *>(ptr);
-    m_document.reset(doc);
-    m_status = m_document ? SUCCESS : parseError(FPDF_GetLastError());
+    m_documentHandler = static_cast<DPdfiumDocumentHandler *>(ptr);
 
+    m_status = m_documentHandler ? SUCCESS : parseError(FPDF_GetLastError());
 
-    if (m_document) {
-        m_pageCount = FPDF_GetPageCount((FPDF_DOCUMENT)m_document.data());
+    if (m_documentHandler) {
+        m_pageCount = FPDF_GetPageCount((FPDF_DOCUMENT)m_documentHandler);
+
         m_pages.resize(m_pageCount);
+        for(int i = 0; i< m_pageCount;++i)
+        {
+            m_pages[i] = nullptr;
+        }
     }
 
     return m_status;
@@ -107,13 +111,10 @@ DPdfiumPage *DPdfium::page(int i)
     if (i < 0 || i >= m_pageCount)
         return nullptr;
 
-    auto strongRef = m_pages[i].toStrongRef();
-    if (!strongRef)
-        strongRef.reset(new PageHolder(m_document.toWeakRef(),
-                                       reinterpret_cast<FPDF_Page *>(FPDF_LoadPage((FPDF_DOCUMENT)m_document.data(), i))));
+    if (!m_pages[i])
+        m_pages[i] = new DPdfiumPage(m_documentHandler,i);
 
-    m_pages[i] = strongRef.toWeakRef();
-    return new DPdfiumPage(strongRef, i);
+    return m_pages[i];
 }
 
 void collectBookmarks(DPdfium::Outline &outline, const CPDF_BookmarkTree &tree, CPDF_Bookmark This)
@@ -147,7 +148,7 @@ void collectBookmarks(DPdfium::Outline &outline, const CPDF_BookmarkTree &tree, 
 DPdfium::Outline DPdfium::outline()
 {
     Outline outline;
-    CPDF_BookmarkTree tree(reinterpret_cast<CPDF_Document *>(m_document.data()));
+    CPDF_BookmarkTree tree(reinterpret_cast<CPDF_Document *>(m_documentHandler));
     CPDF_Bookmark cBookmark;
     const CPDF_Bookmark &firstRootChild = tree.GetFirstChild(&cBookmark);
     if (firstRootChild.GetDict() != NULL)
@@ -156,4 +157,3 @@ DPdfium::Outline DPdfium::outline()
     return outline;
 }
 
-QT_END_NAMESPACE
