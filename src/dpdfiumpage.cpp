@@ -38,9 +38,9 @@ DPdfiumPagePrivate::DPdfiumPagePrivate(DPdfiumDocumentHandler *handler, int inde
 
     m_index = index;
 
-    m_page = FPDF_LoadPage((FPDF_DOCUMENT)handler, m_index);
+    m_page = FPDF_LoadPage(m_doc, m_index);
 
-    m_textPage = FPDFText_LoadPage((FPDF_PAGE)m_page);
+    m_textPage = FPDFText_LoadPage(m_page);
 
     //获取当前注释
     int annotCount = FPDFPage_GetAnnotCount(m_page);

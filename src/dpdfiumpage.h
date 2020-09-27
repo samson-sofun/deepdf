@@ -15,26 +15,24 @@ class DEEPIN_PDFIUM_EXPORT DPdfiumPage : public QObject
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(DPdfiumPage)
+    
 public:
     ~DPdfiumPage();
 
     /**
-     * @brief width
-     * 图片宽
+     * @brief 图片宽
      * @return
      */
     qreal width() const;
 
     /**
-     * @brief height
-     * 图片高
+     * @brief 图片高
      * @return
      */
     qreal height() const;
 
     /**
-     * @brief pageIndex
-     * 当页索引
+     * @brief 当页索引
      * @return
      */
     int pageIndex() const;
@@ -47,15 +45,13 @@ public:
     QImage image(qreal xscale = 1, qreal yscale = 1, qreal x = 0, qreal y = 0, qreal width = 0, qreal height = 0);
 
     /**
-     * @brief countChars
-     * 字符数
+     * @brief 字符数
      * @return
      */
     int countChars() const;
 
     /**
-     * @brief getTextRects
-     * 根据索引获取文本范围
+     * @brief 根据索引获取文本范围
      * @param start
      * @param charCount
      * @return
@@ -63,23 +59,20 @@ public:
     QVector<QRectF> getTextRects(int start = 0, int charCount = -1) const;
 
     /**
-     * @brief text
-     * 根据范围获取文本
+     * @brief 根据范围获取文本
      * @param rect
      * @return
      */
     QString text(const QRectF &rect) const;
 
     /**
-     * @brief text
-     * 获取总文本
+     * @brief 获取总文本
      * @return
      */
     QString text() const;
 
     /**
-     * @brief text
-     * 根据索引获取文本
+     * @brief 根据索引获取文本
      * @param start
      * @param charCount
      * @return
@@ -87,8 +80,7 @@ public:
     QString text(int start, int charCount) const;
 
     /**
-     * @brief label
-     * 下标真实页码
+     * @brief 下标真实页码
      * @return
      */
     QString label() const;

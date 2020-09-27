@@ -1,9 +1,13 @@
 #include "dpdfium.h"
-#include "public/fpdfview.h"
 #include "dpdfiumpage.h"
+
+#include "public/fpdfview.h"
+#include "public/fpdf_doc.h"
 
 #include "core/fpdfdoc/cpdf_bookmark.h"
 #include "core/fpdfdoc/cpdf_bookmarktree.h"
+#include "core/fpdfapi/parser/cpdf_document.h"
+#include "core/fpdfapi/parser/cpdf_dictionary.h"
 
 #include <QFile>
 #include <QDebug>
@@ -13,6 +17,7 @@ DPdfium::DPdfium()
     , m_pageCount(0)
     , m_status(NOT_LOADED)
 {
+
 }
 
 DPdfium::DPdfium(QString filename, QString password)
@@ -27,13 +32,21 @@ DPdfium::~DPdfium()
 {
     m_pages.clear();
 
-    if(nullptr != m_documentHandler)
+    if (nullptr != m_documentHandler)
         FPDF_CloseDocument((FPDF_DOCUMENT)m_documentHandler);
 }
 
 bool DPdfium::isValid() const
 {
     return m_documentHandler != NULL;
+}
+
+bool DPdfium::isEncrypted() const
+{
+    if (!isValid())
+        return false;
+
+    return FPDF_GetDocPermissions((FPDF_DOCUMENT)m_documentHandler) != 0xFFFFFFFF;
 }
 
 DPdfium::Status DPdfium::loadFile(QString filename, QString password)
@@ -56,12 +69,7 @@ DPdfium::Status DPdfium::loadFile(QString filename, QString password)
 
     if (m_documentHandler) {
         m_pageCount = FPDF_GetPageCount((FPDF_DOCUMENT)m_documentHandler);
-
-        m_pages.resize(m_pageCount);
-        for(int i = 0; i< m_pageCount;++i)
-        {
-            m_pages[i] = nullptr;
-        }
+        m_pages.fill(nullptr, m_pageCount);
     }
 
     return m_status;
@@ -112,7 +120,7 @@ DPdfiumPage *DPdfium::page(int i)
         return nullptr;
 
     if (!m_pages[i])
-        m_pages[i] = new DPdfiumPage(m_documentHandler,i);
+        m_pages[i] = new DPdfiumPage(m_documentHandler, i);
 
     return m_pages[i];
 }
@@ -155,5 +163,40 @@ DPdfium::Outline DPdfium::outline()
         collectBookmarks(outline, tree, firstRootChild);
 
     return outline;
+}
+
+DPdfium::Properies DPdfium::proeries()
+{
+    Properies properies;
+    int fileversion = 1;
+    properies.insert("Version", "1");
+    if (FPDF_GetFileVersion((FPDF_DOCUMENT)m_documentHandler, &fileversion)) {
+        properies.insert("Version", fileversion);
+    }
+    properies.insert("Encrypted", isEncrypted());
+    properies.insert("Linearized", FPDF_GetFileLinearized((FPDF_DOCUMENT)m_documentHandler));
+
+    properies.insert("KeyWords", QString());
+    properies.insert("Title", QString());
+    properies.insert("Creator", QString());
+    properies.insert("Producer", QString());
+    CPDF_Document *pDoc = reinterpret_cast<CPDF_Document *>(m_documentHandler);
+    const CPDF_Dictionary *pInfo = pDoc->GetInfo();
+    if (pInfo) {
+        const WideString &KeyWords = pInfo->GetUnicodeTextFor("Keywords");
+        properies.insert("KeyWords", QString::fromWCharArray(KeyWords.c_str(), KeyWords.GetLength()));
+
+        const WideString &Title = pInfo->GetUnicodeTextFor("Title");
+        properies.insert("Title", QString::fromWCharArray(Title.c_str(), Title.GetLength()));
+
+        const WideString &Creator = pInfo->GetUnicodeTextFor("Creator");
+        properies.insert("Creator", QString::fromWCharArray(Creator.c_str(), Creator.GetLength()));
+
+        const WideString &Producer = pInfo->GetUnicodeTextFor("Producer");
+        properies.insert("Producer", QString::fromWCharArray(Producer.c_str(), Producer.GetLength()));
+    }
+
+    qDebug() << "properies = " << properies;
+    return properies;
 }
 
