@@ -54,19 +54,19 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
         if (FPDF_ANNOT_TEXT == subType)
             type = DPdfAnnot::AText;
-        else if (FPDF_ANNOT_LINK == subType)
-            type = DPdfAnnot::AHighlight;
         else if (FPDF_ANNOT_HIGHLIGHT == subType)
+            type = DPdfAnnot::AHighlight;
+        else if (FPDF_ANNOT_LINK == subType)
             type = DPdfAnnot::ALink;
 
+        DPdfAnnot *dAnnot = new DPdfAnnot(type);
         if (DPdfAnnot::AUnknown != type) {
             FS_RECTF fRectF;
-            DPdfAnnot *dAnnot = new DPdfAnnot(type);
             if (FPDFAnnot_GetRect(annot, &fRectF)) {
                 dAnnot->setBoundary(QRectF(fRectF.left, fRectF.top, (fRectF.right - fRectF.left), (fRectF.bottom - fRectF.top)));
             }
-            m_dAnnots.append(dAnnot);
         }
+        m_dAnnots.append(dAnnot);
 
         FPDFPage_CloseAnnot(annot);
     }
@@ -195,12 +195,39 @@ QString DPdfPage::label() const
     return QString();
 }
 
-QList<DPdfAnnot *> DPdfPage::annotations()
+QList<DPdfAnnot *> DPdfPage::annots()
 {
-    return d_func()->m_dAnnots;
+    QList<DPdfAnnot *> annots;
+    for (DPdfAnnot *annot : d_func()->m_dAnnots) {
+        if (annot->type() == DPdfAnnot::AHighlight || annot->type() == DPdfAnnot::AText)
+            annots.append(annot);
+    }
+
+    return annots;
 }
 
-bool DPdfPage::removeAnnotation(DPdfAnnot *annot)
+QList<DPdfAnnot *> DPdfPage::links()
+{
+    QList<DPdfAnnot *> annots;
+    for (DPdfAnnot *annot : d_func()->m_dAnnots) {
+        if (annot->type() == DPdfAnnot::ALink)
+            annots.append(annot);
+    }
+
+    return annots;
+}
+
+bool DPdfPage::createAnnot(DPdfAnnot *annot)
+{
+    return true;
+}
+
+bool DPdfPage::updateAnnot(DPdfAnnot *annot)
+{
+    return true;
+}
+
+bool DPdfPage::removeAnnot(DPdfAnnot *annot)
 {
     int index = d_func()->m_dAnnots.indexOf(annot);
 
@@ -212,10 +239,9 @@ bool DPdfPage::removeAnnotation(DPdfAnnot *annot)
 
     d_func()->m_dAnnots.removeOne(annot);
 
-    delete annot;
+    emit annotRemoved(annot);
 
-    emit annotationRemoved(index);
+    delete annot;
 
     return true;
 }
-

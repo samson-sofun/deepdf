@@ -86,44 +86,50 @@ public:
     QString label() const;
 
     /**
-     * @brief 获取当前所有注释
-     * @return
+     * @brief 获取当前支持操作的所有注释
+     * @return 注释列表，只会列出已支持的注释
      */
-    QList<DPdfAnnot *> annotations();
+    QList<DPdfAnnot *> annots();
+
+    /**
+     * @brief 获取所有Link注释
+     * @return 注释列表
+     */
+    QList<DPdfAnnot *> links();
 
     /**
      * @brief 添加注释
      * @param annot 即将删除的注释指针，执行成功传入的指针会被删除
      * @return
      */
-    bool createAnnotation(DPdfAnnot *annot);
+    bool createAnnot(DPdfAnnot *annot);
 
     /**
      * @brief 更新注释
      * @param annot 即将删除的注释指针，执行成功传入的指针会被删除
      * @return
      */
-    bool updateAnnotation(DPdfAnnot *annot);
+    bool updateAnnot(DPdfAnnot *annot);
 
     /**
      * @brief 删除注释
      * @param annot 即将删除的注释指针，执行成功传入的指针会被删除
      * @return
      */
-    bool removeAnnotation(DPdfAnnot *annot);
+    bool removeAnnot(DPdfAnnot *annot);
 
 signals:
     /**
      * @brief 添加注释时触发 ，在需要的时候可以重新获取annotations()
-     * @param 增加后的index
+     * @param annot 新增加的annot
      */
-    void annotationAdded(int index);
+    void annotAdded(DPdfAnnot *annot);
 
     /**
      * @brief 注释被删除时触发 ，在需要的时候可以重新获取annotations()
-     * @param index 被移除的index
+     * @param annot 被移除的annot 注意这个已经是个将要被析构后的地址 只用于做匹配移除
      */
-    void annotationRemoved(int index);
+    void annotRemoved(DPdfAnnot *annot);
 
 private:
     DPdfPage(DPdfDocHandler *handler, int pageIndex);
