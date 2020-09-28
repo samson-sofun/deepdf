@@ -5,10 +5,12 @@
 #include "public/fpdfview.h"
 #include "public/fpdf_text.h"
 #include "public/fpdf_annot.h"
+#include "public/fpdf_doc.h"
 
 #include "core/fpdfapi/page/cpdf_page.h"
 #include "core/fpdftext/cpdf_textpage.h"
 #include "core/fpdfdoc/cpdf_pagelabel.h"
+#include "core/fpdfdoc/cpdf_linklist.h"
 
 #include <QDebug>
 
@@ -206,15 +208,27 @@ QList<DPdfAnnot *> DPdfPage::annots()
     return annots;
 }
 
-QList<DPdfAnnot *> DPdfPage::links()
+DPdfPage::Link DPdfPage::getLinkAtPoint(qreal x, qreal y)
 {
-    QList<DPdfAnnot *> annots;
-    for (DPdfAnnot *annot : d_func()->m_dAnnots) {
-        if (annot->type() == DPdfAnnot::ALink)
-            annots.append(annot);
-    }
+    Link link;
+    const FPDF_LINK &flink = FPDFLink_GetLinkAtPoint(d_func()->m_page, x, height() - y);
+    CPDF_Link cLink(reinterpret_cast<CPDF_Dictionary *>(flink));
+    if (cLink.GetDict() == nullptr)
+        return link;
 
-    return annots;
+    CPDF_Document *pDoc = reinterpret_cast<CPDF_Document *>(d_func()->m_doc);
+    const CPDF_Action &cAction = cLink.GetAction();
+    const CPDF_Dest &dest = cAction.GetDest(pDoc);
+
+    link.nIndex = dest.GetDestPageIndex(pDoc);
+    if (cAction.GetType() == CPDF_Action::URI) {
+        const ByteString &bUrl = cAction.GetURI(pDoc);
+        link.urlpath = QString::fromUtf8(bUrl.c_str(), bUrl.GetLength());
+    } else {
+        const WideString &wFilepath = cAction.GetFilePath();
+        link.urlpath = QString::fromWCharArray(wFilepath.c_str(), wFilepath.GetLength());
+    }
+    return link;
 }
 
 bool DPdfPage::createAnnot(int annotType, QColor color, QRectF boudary)

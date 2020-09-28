@@ -132,11 +132,11 @@ void collectBookmarks(DPdfDoc::Outline &outline, const CPDF_BookmarkTree &tree, 
     const WideString &title = This.GetTitle();
     section.title = QString::fromWCharArray(title.c_str(), title.GetLength());
 
-    CPDF_Dest &&dest = This.GetDest(tree.GetDocument());
-    section.nIndex = dest.GetDestPageIndex(tree.GetDocument());
-
     bool hasx = false, hasy = false, haszoom = false;
     float x = 0.0, y = 0.0, z = 0.0;
+
+    const CPDF_Dest &dest = This.GetDest(tree.GetDocument()).GetArray() ? This.GetDest(tree.GetDocument()) : This.GetAction().GetDest(tree.GetDocument());
+    section.nIndex = dest.GetDestPageIndex(tree.GetDocument());
     dest.GetXYZ(&hasx, &hasy, &haszoom, &x, &y, &z);
     section.offsetPointF = QPointF(x, y);
 
@@ -171,7 +171,7 @@ DPdfDoc::Properies DPdfDoc::proeries()
     int fileversion = 1;
     properies.insert("Version", "1");
     if (FPDF_GetFileVersion((FPDF_DOCUMENT)m_docHandler, &fileversion)) {
-        properies.insert("Version", fileversion);
+        properies.insert("Version", QString("%1.%2").arg(fileversion / 10).arg(fileversion % 10));
     }
     properies.insert("Encrypted", isEncrypted());
     properies.insert("Linearized", FPDF_GetFileLinearized((FPDF_DOCUMENT)m_docHandler));

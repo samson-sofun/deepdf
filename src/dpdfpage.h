@@ -16,6 +16,18 @@ class DEEPIN_PDFIUM_EXPORT DPdfPage : public QObject
     Q_OBJECT
     Q_DECLARE_PRIVATE(DPdfPage)
     friend class DPdfDoc;
+
+public:
+    struct Link {
+        int nIndex = -1;
+        QString urlpath;
+
+        bool isValid()
+        {
+            return nIndex >= 0;
+        }
+    };
+
 public:
     ~DPdfPage();
 
@@ -92,10 +104,10 @@ public:
     QList<DPdfAnnot *> annots();
 
     /**
-     * @brief 获取所有Link注释
-     * @return 注释列表
+     * @brief 获取位置所在Link
+     * @return
      */
-    QList<DPdfAnnot *> links();
+    Link getLinkAtPoint(qreal x, qreal y);
 
     /**
      * @brief 添加注释
