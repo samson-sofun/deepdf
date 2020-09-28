@@ -1,23 +1,23 @@
-#ifndef DPdfiumPAGE_H
-#define DPdfiumPAGE_H
+#ifndef DPDFPAGE_H
+#define DPDFPAGE_H
 
 #include <QObject>
 #include <QImage>
 #include <QSharedPointer>
 
-#include "dpdfiumglobal.h"
+#include "dpdfglobal.h"
 
 class DPdfium;
-class DAnnotation;
-class DPdfiumPagePrivate;
-class DPdfiumDocumentHandler;
-class DEEPIN_PDFIUM_EXPORT DPdfiumPage : public QObject
+class DPdfAnnot;
+class DPdfPagePrivate;
+class DPdfDocHandler;
+class DEEPIN_PDFIUM_EXPORT DPdfPage : public QObject
 {
     Q_OBJECT
-    Q_DECLARE_PRIVATE(DPdfiumPage)
-    friend class DPdfium;
+    Q_DECLARE_PRIVATE(DPdfPage)
+    friend class DPdfDoc;
 public:
-    ~DPdfiumPage();
+    ~DPdfPage();
 
     /**
      * @brief 图片宽
@@ -89,14 +89,28 @@ public:
      * @brief 获取当前所有注释
      * @return
      */
-    QList<DAnnotation *> annotations();
+    QList<DPdfAnnot *> annotations();
+
+    /**
+     * @brief 添加注释
+     * @param annot 即将删除的注释指针，执行成功传入的指针会被删除
+     * @return
+     */
+    bool createAnnotation(DPdfAnnot *annot);
+
+    /**
+     * @brief 更新注释
+     * @param annot 即将删除的注释指针，执行成功传入的指针会被删除
+     * @return
+     */
+    bool updateAnnotation(DPdfAnnot *annot);
 
     /**
      * @brief 删除注释
      * @param annot 即将删除的注释指针，执行成功传入的指针会被删除
      * @return
      */
-    bool removeAnnotation(DAnnotation *annot);
+    bool removeAnnotation(DPdfAnnot *annot);
 
 signals:
     /**
@@ -112,9 +126,9 @@ signals:
     void annotationRemoved(int index);
 
 private:
-    DPdfiumPage(DPdfiumDocumentHandler *handler, int pageIndex);
+    DPdfPage(DPdfDocHandler *handler, int pageIndex);
 
-    QScopedPointer<DPdfiumPagePrivate> d_ptr;
+    QScopedPointer<DPdfPagePrivate> d_ptr;
 };
 
-#endif // DPdfiumPAGE_H
+#endif // DPDFPAGE_H

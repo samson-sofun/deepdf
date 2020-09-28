@@ -1,6 +1,6 @@
-#include "dpdfiumpage.h"
-#include "dpdfium.h"
-#include "dannotation.h"
+#include "dpdfdoc.h"
+#include "dpdfpage.h"
+#include "dpdfannot.h"
 
 #include "public/fpdfview.h"
 #include "public/fpdf_text.h"
@@ -12,13 +12,13 @@
 
 #include <QDebug>
 
-class DPdfiumPagePrivate
+class DPdfPagePrivate
 {
-    friend class DPdfiumPage;
+    friend class DPdfPage;
 public:
-    DPdfiumPagePrivate(DPdfiumDocumentHandler *handler, int index);
+    DPdfPagePrivate(DPdfDocHandler *handler, int index);
 
-    ~DPdfiumPagePrivate();
+    ~DPdfPagePrivate();
 
 private:
     FPDF_DOCUMENT m_doc = nullptr;
@@ -29,10 +29,10 @@ private:
 
     int m_index = -1;
 
-    QList<DAnnotation *> m_dAnnotations;
+    QList<DPdfAnnot *> m_dAnnots;
 };
 
-DPdfiumPagePrivate::DPdfiumPagePrivate(DPdfiumDocumentHandler *handler, int index)
+DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 {
     m_doc = reinterpret_cast<FPDF_DOCUMENT>(handler);
 
@@ -50,34 +50,34 @@ DPdfiumPagePrivate::DPdfiumPagePrivate(DPdfiumDocumentHandler *handler, int inde
 
         FPDF_ANNOTATION_SUBTYPE subType = FPDFAnnot_GetSubtype(annot);
 
-        int type = DAnnotation::AUnknown;
+        DPdfAnnot::AnnotType type = DPdfAnnot::AUnknown;
 
         if (FPDF_ANNOT_TEXT == subType)
-            type = DAnnotation::AText;
+            type = DPdfAnnot::AText;
         else if (FPDF_ANNOT_LINK == subType)
-            type = DAnnotation::AHighlight;
+            type = DPdfAnnot::AHighlight;
         else if (FPDF_ANNOT_HIGHLIGHT == subType)
-            type = DAnnotation::ALink;
+            type = DPdfAnnot::ALink;
 
-        if (DAnnotation::AUnknown != type) {
+        if (DPdfAnnot::AUnknown != type) {
             FS_RECTF fRectF;
-            DAnnotation *dAnnotation = new DAnnotation(type);
+            DPdfAnnot *dAnnot = new DPdfAnnot(type);
             if (FPDFAnnot_GetRect(annot, &fRectF)) {
-                dAnnotation->setBoundary(QRectF(fRectF.left, fRectF.top, (fRectF.right - fRectF.left), (fRectF.bottom - fRectF.top)));
+                dAnnot->setBoundary(QRectF(fRectF.left, fRectF.top, (fRectF.right - fRectF.left), (fRectF.bottom - fRectF.top)));
             }
-            m_dAnnotations.append(dAnnotation);
+            m_dAnnots.append(dAnnot);
         }
 
         FPDFPage_CloseAnnot(annot);
     }
 }
 
-DPdfiumPagePrivate::~DPdfiumPagePrivate()
+DPdfPagePrivate::~DPdfPagePrivate()
 {
     if (m_textPage)
         FPDFText_ClosePage(m_textPage);
 
-    for (DAnnotation *dAnnot : m_dAnnotations) {
+    for (DPdfAnnot *dAnnot : m_dAnnots) {
         delete dAnnot;
     }
 
@@ -85,33 +85,33 @@ DPdfiumPagePrivate::~DPdfiumPagePrivate()
         FPDF_ClosePage(m_page);
 }
 
-DPdfiumPage::DPdfiumPage(DPdfiumDocumentHandler *handler, int pageIndex)
-    : d_ptr(new DPdfiumPagePrivate(handler, pageIndex))
+DPdfPage::DPdfPage(DPdfDocHandler *handler, int pageIndex)
+    : d_ptr(new DPdfPagePrivate(handler, pageIndex))
 {
 
 }
 
-DPdfiumPage::~DPdfiumPage()
+DPdfPage::~DPdfPage()
 {
 
 }
 
-qreal DPdfiumPage::width() const
+qreal DPdfPage::width() const
 {
     return FPDF_GetPageWidth(d_func()->m_page);
 }
 
-qreal DPdfiumPage::height() const
+qreal DPdfPage::height() const
 {
     return FPDF_GetPageHeight(d_func()->m_page);
 }
 
-int DPdfiumPage::pageIndex() const
+int DPdfPage::pageIndex() const
 {
     return d_func()->m_index;
 }
 
-QImage DPdfiumPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width, qreal height)
+QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width, qreal height)
 {
     if (nullptr == d_func()->m_doc)
         return QImage();
@@ -147,12 +147,12 @@ QImage DPdfiumPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal wi
     return image;
 }
 
-int DPdfiumPage::countChars() const
+int DPdfPage::countChars() const
 {
     return FPDFText_CountChars(d_func()->m_textPage);
 }
 
-QVector<QRectF> DPdfiumPage::getTextRects(int start, int count) const
+QVector<QRectF> DPdfPage::getTextRects(int start, int count) const
 {
     QVector<QRectF> result;
     std::vector<CFX_FloatRect> pdfiumRects = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetRectArray(start, count);
@@ -164,7 +164,7 @@ QVector<QRectF> DPdfiumPage::getTextRects(int start, int count) const
     return result;
 }
 
-QString DPdfiumPage::text(const QRectF &rect) const
+QString DPdfPage::text(const QRectF &rect) const
 {
     // QRectF coordinates have their origin point top left instead of bottom left for CFX_FloatRect,
     // so here we reverse the symetry done in getTextRects.
@@ -175,18 +175,18 @@ QString DPdfiumPage::text(const QRectF &rect) const
     return QString::fromWCharArray(text.c_str(), text.GetLength());
 }
 
-QString DPdfiumPage::text() const
+QString DPdfPage::text() const
 {
     return text(0, countChars());
 }
 
-QString DPdfiumPage::text(int start, int charCount) const
+QString DPdfPage::text(int start, int charCount) const
 {
     auto text = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetPageText(start, charCount);
     return QString::fromWCharArray(text.c_str(), charCount);
 }
 
-QString DPdfiumPage::label() const
+QString DPdfPage::label() const
 {
     CPDF_PageLabel label(reinterpret_cast<CPDF_Document *>(d_func()->m_doc));
     const Optional<WideString> &str = label.GetLabel(pageIndex());
@@ -195,14 +195,14 @@ QString DPdfiumPage::label() const
     return QString();
 }
 
-QList<DAnnotation *> DPdfiumPage::annotations()
+QList<DPdfAnnot *> DPdfPage::annotations()
 {
-    return d_func()->m_dAnnotations;
+    return d_func()->m_dAnnots;
 }
 
-bool DPdfiumPage::removeAnnotation(DAnnotation *annot)
+bool DPdfPage::removeAnnotation(DPdfAnnot *annot)
 {
-    int index = d_func()->m_dAnnotations.indexOf(annot);
+    int index = d_func()->m_dAnnots.indexOf(annot);
 
     if (index < 0)
         return false;
@@ -210,7 +210,7 @@ bool DPdfiumPage::removeAnnotation(DAnnotation *annot)
     if (!FPDFPage_RemoveAnnot(d_func()->m_page, index))
         return false;
 
-    d_func()->m_dAnnotations.removeOne(annot);
+    d_func()->m_dAnnots.removeOne(annot);
 
     delete annot;
 

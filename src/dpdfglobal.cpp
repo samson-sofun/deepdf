@@ -1,7 +1,7 @@
 
 #include <QtCore>
 #include <QString>
-#include "dpdfiumglobal.h"
+#include "dpdfglobal.h"
 #include "public/fpdfview.h"
 
 bool initialized = false;

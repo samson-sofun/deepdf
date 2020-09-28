@@ -9,14 +9,14 @@ QT = core-private core gui
 include($$PWD/3rdparty/pdfium/pdfium.pri)
 
 HEADERS += \
-    $$PWD/dpdfiumglobal.h \
-    $$PWD/dpdfium.h \
-    $$PWD/dpdfiumpage.h \
-    dannotation.h \
-    dpdfiumdefines.h
+    $$PWD/dpdfglobal.h \
+    $$PWD/dpdfdoc.h \
+    $$PWD/dpdfpage.h \
+    $$PWD/dpdfiumdefines.h \
+    $$PWD/dpdfannot.h
 
 SOURCES += \
-    $$PWD/dpdfiumglobal.cpp \
-    $$PWD/dpdfium.cpp \
-    $$PWD/dpdfiumpage.cpp \
-    dannotation.cpp
+    $$PWD/dpdfglobal.cpp \
+    $$PWD/dpdfdoc.cpp \
+    $$PWD/dpdfpage.cpp \
+    $$PWD/dpdfannot.cpp

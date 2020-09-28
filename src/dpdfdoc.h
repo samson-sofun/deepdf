@@ -1,16 +1,16 @@
-#ifndef DPdfium_H
-#define DPdfium_H
+#ifndef DPDFDOC_H
+#define DPDFDOC_H
 
-#include "dpdfiumglobal.h"
+#include "dpdfglobal.h"
 
 #include <QObject>
 #include <QMap>
 #include <QVector>
 #include <QPointF>
 
-class DPdfiumPage;
-class DPdfiumDocumentHandler;
-class DEEPIN_PDFIUM_EXPORT DPdfium : public QObject
+class DPdfPage;
+class DPdfDocHandler;
+class DEEPIN_PDFIUM_EXPORT DPdfDoc : public QObject
 {
     Q_OBJECT
 public:
@@ -35,10 +35,10 @@ public:
         Outline children;
     };
 
-    explicit DPdfium();
-    DPdfium(QString filename, QString password = QString());
+    explicit DPdfDoc();
+    DPdfDoc(QString filename, QString password = QString());
 
-    virtual ~DPdfium();
+    virtual ~DPdfDoc();
 
     /**
      * @brief 文档是否有效
@@ -75,7 +75,7 @@ public:
      * @param i
      * @return
      */
-    DPdfiumPage *page(int i);
+    DPdfPage *page(int i);
 
     /**
      * @brief 目录
@@ -107,14 +107,13 @@ public Q_SLOTS:
     Status loadFile(QString filename, QString password = QString());
 
 private:
-    Q_DISABLE_COPY(DPdfium)
-
-    DPdfiumDocumentHandler *m_documentHandler = nullptr;
-    QVector<DPdfiumPage *> m_pages;
+    Q_DISABLE_COPY(DPdfDoc)
+    DPdfDocHandler *m_docHandler = nullptr;
+    QVector<DPdfPage *> m_pages;
     QString m_filename;
     int m_pageCount;
     Status m_status;
-    DPdfium::Status parseError(int err);
+    DPdfDoc::Status parseError(int err);
 };
 
-#endif // DPdfium_H
+#endif // DPDFDOC_H

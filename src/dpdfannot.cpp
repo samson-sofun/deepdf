@@ -1,18 +1,28 @@
-#include "dannotation.h"
+#include "dpdfannot.h"
 
 #include "public/fpdf_annot.h"
 
-DAnnotation::DAnnotation(int type)
+DPdfAnnot::DPdfAnnot(AnnotType type)
 {
     m_type = type;
 }
 
-QRectF DAnnotation::boundary() const
+QRectF DPdfAnnot::boundary() const
 {
     return m_boundary;
 }
 
-void DAnnotation::setBoundary(const QRectF &boundary)
+void DPdfAnnot::setBoundary(const QRectF &boundary)
 {
     m_boundary = boundary;
+}
+
+DPdfAnnot::AnnotType DPdfAnnot::type()
+{
+    return m_type;
+}
+
+void DPdfAnnot::setType(DPdfAnnot::AnnotType type)
+{
+    m_type = type;
 }

@@ -1,14 +1,14 @@
-#ifndef DANNOTATION_H
-#define DANNOTATION_H
+#ifndef DPDFANNOT_H
+#define DPDFANNOT_H
 
-#include "dpdfiumglobal.h"
+#include "dpdfglobal.h"
 
 #include <QRectF>
 
-class DEEPIN_PDFIUM_EXPORT DAnnotation
+class DEEPIN_PDFIUM_EXPORT DPdfAnnot
 {
 public:
-    enum AnnotationType {
+    enum AnnotType {
         AUnknown = 0,         ///< 前期支持以外的
         AText = 1,            ///< TextAnnotation
         AHighlight = 2,       ///< HighlightAnnotation
@@ -27,13 +27,19 @@ public:
      */
     void setBoundary(const QRectF &boundary);
 
-private:
-    friend class DPdfiumPagePrivate;
-    DAnnotation(int type);
+    AnnotType type();
 
-    int m_type;
+    void setType(AnnotType type);
+
+private:
+    friend class DPdfPagePrivate;
+
+    DPdfAnnot(AnnotType type);
+
+    AnnotType m_type;
+
     QRectF m_boundary;
 };
 
 
-#endif // DANNOTATION_H
+#endif // DPDFANNOT_H
