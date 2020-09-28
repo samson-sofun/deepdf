@@ -32,6 +32,7 @@ public:
     void setType(AnnotType type);
 
 private:
+    friend class DPdfPage;
     friend class DPdfPagePrivate;
 
     DPdfAnnot(AnnotType type);

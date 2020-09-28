@@ -48,6 +48,8 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
     for (int i = 0; i < annotCount; ++i) {
         FPDF_ANNOTATION annot = FPDFPage_GetAnnot(m_page, i);
 
+        qDebug() << i << ":" << FPDFPage_GetAnnotIndex(m_page, annot);
+
         FPDF_ANNOTATION_SUBTYPE subType = FPDFAnnot_GetSubtype(annot);
 
         DPdfAnnot::AnnotType type = DPdfAnnot::AUnknown;
@@ -56,14 +58,12 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
             type = DPdfAnnot::AText;
         else if (FPDF_ANNOT_HIGHLIGHT == subType)
             type = DPdfAnnot::AHighlight;
-        else if (FPDF_ANNOT_LINK == subType)
-            type = DPdfAnnot::ALink;
 
         DPdfAnnot *dAnnot = new DPdfAnnot(type);
         if (DPdfAnnot::AUnknown != type) {
-            FS_RECTF fRectF;
-            if (FPDFAnnot_GetRect(annot, &fRectF)) {
-                dAnnot->setBoundary(QRectF(fRectF.left, fRectF.top, (fRectF.right - fRectF.left), (fRectF.bottom - fRectF.top)));
+            FS_RECTF rectF;
+            if (FPDFAnnot_GetRect(annot, &rectF)) {
+                dAnnot->setBoundary(QRectF(rectF.left, rectF.top, (rectF.right - rectF.left), (rectF.bottom - rectF.top)));
             }
         }
         m_dAnnots.append(dAnnot);
@@ -217,19 +217,80 @@ QList<DPdfAnnot *> DPdfPage::links()
     return annots;
 }
 
-bool DPdfPage::createAnnot(DPdfAnnot *annot)
+bool DPdfPage::createAnnot(int annotType, QColor color, QRectF boudary)
 {
+    FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_UNKNOWN;
+
+    if (DPdfAnnot::AText == annotType)
+        subType = FPDF_ANNOT_TEXT;
+    else if (DPdfAnnot::AHighlight == annotType)
+        subType = FPDF_ANNOT_HIGHLIGHT;
+    else
+        return false;
+
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(d_func()->m_page, subType);
+
+    if (color.isValid() && !FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, color.red(), color.green(), color.blue(), color.alpha())) {
+        FPDFPage_CloseAnnot(annot);
+        return false;
+    }
+
+    FS_RECTF rectF;
+    rectF.left = boudary.x();
+    rectF.top = boudary.y();
+    rectF.left = boudary.x() + boudary.width();
+    rectF.bottom = boudary.y() + boudary.height();
+
+    if (boudary.isValid() && !FPDFAnnot_SetRect(annot, &rectF)) {
+        FPDFPage_CloseAnnot(annot);
+        return false;
+    }
+
+    FPDFPage_CloseAnnot(annot);
+
+    DPdfAnnot *dAnnot = new DPdfAnnot((DPdfAnnot::AnnotType)annotType);
+
+    dAnnot->setBoundary(boudary);
+
+    d_func()->m_dAnnots.append(dAnnot);
+
+    emit annotAdded(dAnnot);
+
     return true;
 }
 
-bool DPdfPage::updateAnnot(DPdfAnnot *annot)
+bool DPdfPage::updateAnnot(DPdfAnnot *dAnnot, QColor color, QRectF boudary)
 {
+    int index = d_func()->m_dAnnots.indexOf(dAnnot);
+
+    FPDF_ANNOTATION annot = FPDFPage_GetAnnot(d_func()->m_page, index);
+
+    if (color.isValid() && !FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, color.red(), color.green(), color.blue(), color.alpha())) {
+        FPDFPage_CloseAnnot(annot);
+        return false;
+    }
+
+    FS_RECTF rectF;
+    rectF.left = boudary.x();
+    rectF.top = boudary.y();
+    rectF.left = boudary.x() + boudary.width();
+    rectF.bottom = boudary.y() + boudary.height();
+
+    if (boudary.isValid() && !FPDFAnnot_SetRect(annot, &rectF)) {
+        FPDFPage_CloseAnnot(annot);
+        return false;
+    }
+
+    FPDFPage_CloseAnnot(annot);
+
+    emit annotUpdated(dAnnot);
+
     return true;
 }
 
-bool DPdfPage::removeAnnot(DPdfAnnot *annot)
+bool DPdfPage::removeAnnot(DPdfAnnot *dAnnot)
 {
-    int index = d_func()->m_dAnnots.indexOf(annot);
+    int index = d_func()->m_dAnnots.indexOf(dAnnot);
 
     if (index < 0)
         return false;
@@ -237,11 +298,11 @@ bool DPdfPage::removeAnnot(DPdfAnnot *annot)
     if (!FPDFPage_RemoveAnnot(d_func()->m_page, index))
         return false;
 
-    d_func()->m_dAnnots.removeOne(annot);
+    d_func()->m_dAnnots.removeOne(dAnnot);
 
-    emit annotRemoved(annot);
+    emit annotRemoved(dAnnot);
 
-    delete annot;
+    delete dAnnot;
 
     return true;
 }
