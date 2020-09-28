@@ -1,9 +1,12 @@
 # deepinpdf
 
-deepinpdf is a pdf rendering library based on Qt and PDFium.
+deepinpdf是一个基于Qt和PDFium的PDF加载库，对PDFium最新版本进行裁剪内置并使用了Qt风格的语法对其进行封装。
 
-### Installation
-To use the library you must first install it in the same location as your Qt installation. Here is an example on Linux/Mac:
+### 环境
+已在多个cpu架构下验证通过如x86/x64/mips/arm，可跨系统平台但目前只做了linux debian版本。
+
+### 安装
+如果想作为库形式使用就用以下方式安装到系统目录:
 
 ```sh
 git clone <url>
@@ -13,12 +16,19 @@ make
 make install (might need sudo)
 ```
 
-### Contributing
-Feel free to help. :)
+### 使用
+拷贝dpidfium.h和相关头文件到你的工程里，并链接生成的libdpdf.so
+
+使用方法很简单，如打开一个名为1.pdf的文档并且获取第一页图片
+
+```sh
+DPdfium *document = new DPdfium("1.pdf");
+DPdfiumPage *page = document->page(0);
+QImage image = page->image();
+```
+
+### 贡献
+欢迎fork并发起合并请求
 
 ### License
 LGPL-3.0
-
-### References
-A trimmed version of pdfium (https://github.com/pinaraf/pdfium.git)  
-A project that inspired us(qtpdfium ,few functions and no one are maintaining, so we continue to do this work)

@@ -87,7 +87,6 @@ DPdfiumPagePrivate::~DPdfiumPagePrivate()
 
 DPdfiumPage::DPdfiumPage(DPdfiumDocumentHandler *handler, int pageIndex)
     : d_ptr(new DPdfiumPagePrivate(handler, pageIndex))
-    , m_index(pageIndex)
 {
 
 }
@@ -109,7 +108,7 @@ qreal DPdfiumPage::height() const
 
 int DPdfiumPage::pageIndex() const
 {
-    return m_index;
+    return d_func()->m_index;
 }
 
 QImage DPdfiumPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width, qreal height)

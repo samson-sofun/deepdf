@@ -15,7 +15,7 @@ class DEEPIN_PDFIUM_EXPORT DPdfiumPage : public QObject
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(DPdfiumPage)
-    
+    friend class DPdfium;
 public:
     ~DPdfiumPage();
 
@@ -115,10 +115,6 @@ private:
     DPdfiumPage(DPdfiumDocumentHandler *handler, int pageIndex);
 
     QScopedPointer<DPdfiumPagePrivate> d_ptr;
-
-    int m_index;
-
-    friend class DPdfium;
 };
 
 #endif // DPdfiumPAGE_H
