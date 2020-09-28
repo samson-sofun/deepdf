@@ -154,32 +154,24 @@ int DPdfPage::countChars() const
     return FPDFText_CountChars(d_func()->m_textPage);
 }
 
-QVector<QRectF> DPdfPage::getTextRects(int start, int count) const
+QRectF DPdfPage::getTextRect(int start) const
 {
-    QVector<QRectF> result;
-    std::vector<CFX_FloatRect> pdfiumRects = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetRectArray(start, count);
-    result.reserve(pdfiumRects.size());
+    QRectF result;
+    std::vector<CFX_FloatRect> pdfiumRects = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetRectArray(start, 1);
     for (CFX_FloatRect &rect : pdfiumRects) {
-        // QRectF coordinates have their origin point top left instead of bottom left for CFX_FloatRect
-        result.push_back({rect.left, height() - rect.top, rect.right - rect.left, rect.top - rect.bottom});
+        rect.Normalize();
+        result = QRectF(rect.left, height() - rect.top, rect.right - rect.left, rect.top - rect.bottom);
     }
     return result;
 }
 
 QString DPdfPage::text(const QRectF &rect) const
 {
-    // QRectF coordinates have their origin point top left instead of bottom left for CFX_FloatRect,
-    // so here we reverse the symetry done in getTextRects.
     qreal newBottom = height() - rect.bottom();
     qreal newTop = height() - rect.top();
     CFX_FloatRect fxRect(rect.left(), std::min(newBottom, newTop), rect.right(), std::max(newBottom, newTop));
     auto text = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetTextByRect(fxRect);
     return QString::fromWCharArray(text.c_str(), text.GetLength());
-}
-
-QString DPdfPage::text() const
-{
-    return text(0, countChars());
 }
 
 QString DPdfPage::text(int start, int charCount) const

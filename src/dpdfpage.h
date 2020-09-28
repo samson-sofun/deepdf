@@ -65,10 +65,9 @@ public:
     /**
      * @brief 根据索引获取文本范围
      * @param start
-     * @param charCount
      * @return
      */
-    QVector<QRectF> getTextRects(int start = 0, int charCount = -1) const;
+    QRectF getTextRect(int start) const;
 
     /**
      * @brief 根据范围获取文本
@@ -78,18 +77,12 @@ public:
     QString text(const QRectF &rect) const;
 
     /**
-     * @brief 获取总文本
-     * @return
-     */
-    QString text() const;
-
-    /**
      * @brief 根据索引获取文本
      * @param start
      * @param charCount
      * @return
      */
-    QString text(int start, int charCount) const;
+    QString text(int start, int charCount = 1) const;
 
     /**
      * @brief 下标真实页码
