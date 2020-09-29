@@ -112,7 +112,7 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
             unsigned int g = 0;
             unsigned int b = 0;
             unsigned int a = 255;
-            if (FPDFAnnot_GetColor(annot, FPDFANNOT_COLORTYPE_Color, r, g, b, a)) {
+            if (FPDFAnnot_GetColor(annot, FPDFANNOT_COLORTYPE_Color, &r, &g, &b, &a)) {
                 dAnnot->setColor(QColor(r, g, b, a));
             }
 
@@ -229,13 +229,13 @@ int DPdfPage::countChars() const
     return FPDFText_CountChars(d_func()->m_textPage);
 }
 
-QRectF DPdfPage::getTextRect(int start) const
+QVector<QRectF> DPdfPage::getTextRect(int start, int charCount) const
 {
-    QRectF result;
-    std::vector<CFX_FloatRect> pdfiumRects = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetRectArray(start, 1);
+    QVector<QRectF> result;
+    std::vector<CFX_FloatRect> pdfiumRects = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetRectArray(start, charCount);
+    result.reserve(pdfiumRects.size());
     for (CFX_FloatRect &rect : pdfiumRects) {
-        rect.Normalize();
-        result = QRectF(rect.left, height() - rect.top, rect.right - rect.left, rect.top - rect.bottom);
+        result.push_back({rect.left, height() - rect.top, rect.right - rect.left, rect.top - rect.bottom});
     }
     return result;
 }
@@ -335,7 +335,7 @@ DPdfAnnot *DPdfPage::createTextAnnot(QPoint point, QString text)
     return dAnnot;
 }
 
-bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text = "", QPointF point = QPointF())
+bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text, QPointF point)
 {
     DPdfTextAnnot *textAnnot = static_cast<DPdfTextAnnot *>(dAnnot);
 
@@ -374,7 +374,7 @@ bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text = "", QPointF poi
     return true;
 }
 
-DPdfAnnot *DPdfPage::createHightLightAnnot(QList<QRectF> list, QString text, QColor color = QColor())
+DPdfAnnot *DPdfPage::createHightLightAnnot(QList<QRectF> list, QString text, QColor color)
 {
     FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_HIGHLIGHT;
 
@@ -471,4 +471,30 @@ bool DPdfPage::removeAnnot(DPdfAnnot *dAnnot)
     delete dAnnot;
 
     return true;
+}
+
+QVector<QRectF> DPdfPage::search(const QString &text, bool matchCase, bool wholeWords) const
+{
+    QVector<QRectF> rectfs;
+    int flags = 0x00000000;
+
+    if (matchCase)
+        flags |= FPDF_MATCHCASE;
+
+    if (wholeWords)
+        flags |= FPDF_MATCHWHOLEWORD;
+
+    FPDF_SCHHANDLE schandle = FPDFText_FindStart(d_func()->m_textPage, text.utf16(), flags, 0);
+    if (schandle) {
+        while (FPDFText_FindNext(schandle)) {
+            int curSchIndex = FPDFText_GetSchResultIndex(schandle);
+            if (curSchIndex >= 0) {
+                const QVector<QRectF> &textrectfs = getTextRect(curSchIndex, text.length());
+                rectfs << textrectfs;
+            }
+        };
+    }
+
+    FPDFText_FindClose(schandle);
+    return rectfs;
 }

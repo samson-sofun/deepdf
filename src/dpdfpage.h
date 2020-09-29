@@ -67,7 +67,7 @@ public:
      * @param start
      * @return
      */
-    QRectF getTextRect(int start) const;
+    QVector<QRectF> getTextRect(int start, int charCount = 1) const;
 
     /**
      * @brief 根据范围获取文本
@@ -143,6 +143,15 @@ public:
      * @return
      */
     bool removeAnnot(DPdfAnnot *dAnnot);
+
+    /**
+     * @brief 搜索
+     * @param text 搜索关键字
+     * @param matchCase 区分大小写
+     * @param wholeWords 整个单词
+     * @return
+     */
+    QVector<QRectF> search(const QString &text, bool matchCase = false, bool wholeWords = false) const;
 
 signals:
     /**
