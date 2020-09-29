@@ -80,15 +80,15 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 //        @@@@@@@@  "T"
 //        @@@@@@@@  "Type"
 
-        //    |----------------------------------|
-        //    |--------right-------              |
-        //    |                                  |
-        //    |----left----........              |
-        //    |            |.     .              |
-        //    |            |. . . .              |
-        //    |           top     |bottom        |
-        //    |            |      |              |
-        //    |----------------------------------|
+//    |----------------------------------|
+//    |--------right-------              |
+//    |                                  |
+//    |----left----........              |
+//    |            |.     .              |
+//    |            |. . . .              |
+//    |           top     |bottom        |
+//    |            |      |              |
+//    |----------------------------------|
 
         if (DPdfAnnot::AText == type) {
             DPdfTextAnnot *dAnnot = new DPdfTextAnnot;
@@ -103,10 +103,22 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
             m_dAnnots.append(dAnnot);
         } else if (DPdfAnnot::AHighlight == type) {
             DPdfHightLightAnnot *dAnnot = new DPdfHightLightAnnot;
-//            FS_RECTF rectF;
-//            if (FPDFAnnot_GetRect(annot, &rectF)) {
-//                dAnnot->setBoundary(QRectF(rectF.left, m_height - rectF.top, (rectF.right - rectF.left), (rectF.top - rectF.bottom)));
-//            }
+            int quadCount = FPDFAnnot_CountAttachmentPoints(annot);
+            QList<QRectF> list;
+            for (int i = 0; i < quadCount; ++i) {
+                FS_QUADPOINTSF quad;
+                if (!FPDFAnnot_GetAttachmentPoints(annot, i, &quad))
+                    continue;
+
+                QRectF rectF;
+                rectF.setX(quad.x1);
+                rectF.setY(m_height - quad.y1);
+                rectF.setWidth(quad.x2 - quad.x1);
+                rectF.setHeight(quad.y1 - quad.y3);
+
+                list.append(rectF);
+            }
+            dAnnot->setRectList(list);
 
             FPDF_WCHAR buffer[1024];
             FPDFAnnot_GetStringValue(annot, "Contents", buffer, 1024);
@@ -309,6 +321,11 @@ DPdfAnnot *DPdfPage::createTextAnnot(QPoint point, QString text)
 
 bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QPoint point, QString text)
 {
+    DPdfTextAnnot *textAnnot = static_cast<DPdfTextAnnot *>(dAnnot);
+
+    if (nullptr == textAnnot)
+        return false;
+
     int index = d_func()->m_dAnnots.indexOf(dAnnot);
 
     FPDF_ANNOTATION annot = FPDFPage_GetAnnot(d_func()->m_page, index);
@@ -331,12 +348,16 @@ bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QPoint point, QString text)
 
     FPDFPage_CloseAnnot(annot);
 
+    textAnnot->setPos(point);
+
+    textAnnot->setText(text);
+
     emit annotUpdated(dAnnot);
 
     return true;
 }
 
-DPdfAnnot *DPdfPage::createHightLightAnnot(QColor color, QString text)
+DPdfAnnot *DPdfPage::createHightLightAnnot(QList<QRectF> list, QColor color, QString text)
 {
     FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_HIGHLIGHT;
 
@@ -347,8 +368,20 @@ DPdfAnnot *DPdfPage::createHightLightAnnot(QColor color, QString text)
         return nullptr;
     }
 
-    //...更新高亮点点
-    //...
+    for (QRectF rect : list) {
+        FS_QUADPOINTSF quad;
+        quad.x1 = rect.x();
+        quad.y1 = d_func()->m_height - rect.y();
+        quad.x2 = rect.x() + rect.width();
+        quad.y2 = d_func()->m_height - rect.y();
+        quad.x3 = rect.x();
+        quad.y3 = d_func()->m_height - rect.y() - rect.height();
+        quad.x4 = rect.x() + rect.width();
+        quad.y4 = d_func()->m_height - rect.y() - rect.height();
+
+        if (!FPDFAnnot_AppendAttachmentPoints(annot, &quad))
+            continue;
+    }
 
     if (!FPDFAnnot_SetStringValue(annot, "Contents", text.utf16())) {
         FPDFPage_CloseAnnot(annot);
@@ -358,6 +391,8 @@ DPdfAnnot *DPdfPage::createHightLightAnnot(QColor color, QString text)
     FPDFPage_CloseAnnot(annot);
 
     DPdfHightLightAnnot *dAnnot = new DPdfHightLightAnnot;
+
+    dAnnot->setRectList(list);
 
     dAnnot->setColor(color);
 
@@ -372,6 +407,11 @@ DPdfAnnot *DPdfPage::createHightLightAnnot(QColor color, QString text)
 
 bool DPdfPage::updateHightLightAnnot(DPdfAnnot *dAnnot, QColor color, QString text)
 {
+    DPdfHightLightAnnot *hightLightAnnot = static_cast<DPdfHightLightAnnot *>(dAnnot);
+
+    if (nullptr == hightLightAnnot)
+        return false;
+
     int index = d_func()->m_dAnnots.indexOf(dAnnot);
 
     FPDF_ANNOTATION annot = FPDFPage_GetAnnot(d_func()->m_page, index);
@@ -387,6 +427,10 @@ bool DPdfPage::updateHightLightAnnot(DPdfAnnot *dAnnot, QColor color, QString te
     }
 
     FPDFPage_CloseAnnot(annot);
+
+    hightLightAnnot->setColor(color);
+
+    hightLightAnnot->setText(text);
 
     emit annotUpdated(dAnnot);
 

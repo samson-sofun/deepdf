@@ -124,7 +124,7 @@ public:
      * @param boudary 传空则不添加位置 基于文档原始大小
      * @return
      */
-    DPdfAnnot *createHightLightAnnot(QColor color = QColor(), QString text = "");
+    DPdfAnnot *createHightLightAnnot(QList<QRectF> list, QColor color = QColor(), QString text = "");
 
     /**
      * @brief 更新高亮注释
@@ -133,7 +133,7 @@ public:
      * @param boudary 传空则不更新位置 基于文档原始大小
      * @return
      */
-    bool updateHightLightAnnot(DPdfAnnot *dAnnot, QColor color = QColor(), QString text = "");
+    bool updateHightLightAnnot(DPdfAnnot *dAnnot,  QColor color = QColor(), QString text = "");
 
     /**
      * @brief 删除注释

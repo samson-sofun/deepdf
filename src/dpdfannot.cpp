@@ -39,8 +39,8 @@ DPdfHightLightAnnot::DPdfHightLightAnnot()
 
 bool DPdfHightLightAnnot::pointIn(QPointF pos)
 {
-    for (QRectF rectF : m_rectFList) {
-        if (rectF.contains(pos))
+    for (QRectF rect : m_rectList) {
+        if (rect.contains(pos))
             return true;
     }
 
@@ -55,6 +55,16 @@ void DPdfHightLightAnnot::setColor(QColor color)
 QColor DPdfHightLightAnnot::color()
 {
     return m_color;
+}
+
+void DPdfHightLightAnnot::setRectList(QList<QRectF> rectList)
+{
+    m_rectList = rectList;
+}
+
+QList<QRectF> DPdfHightLightAnnot::rectList()
+{
+    return m_rectList;
 }
 
 DPdfAnnot::~DPdfAnnot()

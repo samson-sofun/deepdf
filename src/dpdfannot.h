@@ -65,8 +65,12 @@ public:
 
     QColor color();
 
+    void setRectList(QList<QRectF> rectList);
+
+    QList<QRectF> rectList();
+
 private:
-    QList<QRectF> m_rectFList;
+    QList<QRectF> m_rectList;
     QColor m_color;
 };
 
