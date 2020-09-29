@@ -12,7 +12,6 @@ DEFINES += __QT__ \
 DEFINES +=  USE_SYSTEM_LIBJPEG \
             USE_SYSTEM_ZLIB \
             USE_SYSTEM_LIBPNG \
-            USE_SYSTEM_FREETYPE \
             USE_SYSTEM_ICUUC
 
 if(QMAKE_HOST.arch, x86_64) {

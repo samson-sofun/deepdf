@@ -35,8 +35,6 @@ HEADERS += \
     $$PWD/pdfium/third_party/base/numerics/safe_math_arm_impl.h \
     $$PWD/pdfium/third_party/base/numerics/safe_math_clang_gcc_impl.h \
     $$PWD/pdfium/third_party/base/numerics/safe_math_shared_impl.h \
-    $$PWD/pdfium/third_party/base/test/scoped_locale.h \
-    #$$PWD/pdfium/third_party/base/win/win_util.h \
     $$PWD/pdfium/third_party/base/base_export.h \
     $$PWD/pdfium/third_party/base/bits.h \
     $$PWD/pdfium/third_party/base/compiler_specific.h \
@@ -44,7 +42,6 @@ HEADERS += \
     $$PWD/pdfium/third_party/base/logging.h \
     $$PWD/pdfium/third_party/base/no_destructor.h \
     $$PWD/pdfium/third_party/base/optional.h \
-    $$PWD/pdfium/third_party/base/ptr_util.h \
     $$PWD/pdfium/third_party/base/span.h \
     $$PWD/pdfium/third_party/base/stl_util.h \
     $$PWD/pdfium/third_party/base/sys_byteorder.h \
@@ -62,6 +59,4 @@ SOURCES += \
     $$PWD/pdfium/third_party/base/allocator/partition_allocator/random.cc \
     $$PWD/pdfium/third_party/base/allocator/partition_allocator/spin_lock.cc \
     $$PWD/pdfium/third_party/base/debug/alias.cc \
-    $$PWD/pdfium/third_party/base/memory/aligned_memory.cc \
-    #$$PWD/pdfium/third_party/base/test/scoped_locale.cc \
-    #$$PWD/pdfium/third_party/base/win/win_util.cc
+    $$PWD/pdfium/third_party/base/memory/aligned_memory.cc
