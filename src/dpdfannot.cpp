@@ -27,6 +27,14 @@ bool DPdfTextAnnot::pointIn(QPointF pos)
     return QRectF(m_pos.x() - 12, m_pos.y() - 12, 24, 24).contains(pos);
 }
 
+QList<QRectF> DPdfTextAnnot::boundaries()
+{
+    QList<QRectF> list;
+    list << QRectF(m_pos.x() - 12, m_pos.y() - 12, 24, 24);
+
+    return list;
+}
+
 void DPdfTextAnnot::setPos(QPointF pos)
 {
     m_pos = pos;
@@ -57,12 +65,12 @@ QColor DPdfHightLightAnnot::color()
     return m_color;
 }
 
-void DPdfHightLightAnnot::setRectList(QList<QRectF> rectList)
+void DPdfHightLightAnnot::setBoundaries(QList<QRectF> rectList)
 {
     m_rectList = rectList;
 }
 
-QList<QRectF> DPdfHightLightAnnot::rectList()
+QList<QRectF> DPdfHightLightAnnot::boundaries()
 {
     return m_rectList;
 }
@@ -81,4 +89,9 @@ bool DPdfUnknownAnnot::pointIn(QPointF pos)
 {
     Q_UNUSED(pos)
     return false;
+}
+
+QList<QRectF> DPdfUnknownAnnot::boundaries()
+{
+    return QList<QRectF>();
 }

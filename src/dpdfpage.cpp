@@ -132,7 +132,7 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
                 list.append(rectF);
             }
-            dAnnot->setRectList(list);
+            dAnnot->setBoundaries(list);
 
             //获取文本
             FPDF_WCHAR buffer[1024];
@@ -409,7 +409,7 @@ DPdfAnnot *DPdfPage::createHightLightAnnot(QList<QRectF> list, QString text, QCo
 
     DPdfHightLightAnnot *dAnnot = new DPdfHightLightAnnot;
 
-    dAnnot->setRectList(list);
+    dAnnot->setBoundaries(list);
 
     dAnnot->setColor(color);
 

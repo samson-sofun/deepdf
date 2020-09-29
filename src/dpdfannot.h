@@ -26,6 +26,8 @@ public:
      */
     virtual bool pointIn(QPointF pos) = 0;
 
+    virtual QList<QRectF> boundaries() = 0;
+
     AnnotType type();
 
     void setText(QString text);
@@ -46,6 +48,8 @@ public:
 
     bool pointIn(QPointF pos) override;
 
+    QList<QRectF> boundaries() override;
+
     void setPos(QPointF pos);
 
 private:
@@ -65,9 +69,9 @@ public:
 
     QColor color();
 
-    void setRectList(QList<QRectF> rectList);
+    void setBoundaries(QList<QRectF> rectList);
 
-    QList<QRectF> rectList();
+    QList<QRectF> boundaries() override;
 
 private:
     QList<QRectF> m_rectList;
@@ -80,5 +84,8 @@ public:
     DPdfUnknownAnnot();
 
     bool pointIn(QPointF pos) override;
+
+    QList<QRectF> boundaries() override;
+
 };
 #endif // DPDFANNOT_H
