@@ -32,6 +32,10 @@ private:
     int m_index = -1;
 
     QList<DPdfAnnot *> m_dAnnots;
+
+    double m_width = 0;
+
+    double m_height = 0;
 };
 
 DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
@@ -42,6 +46,10 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
     m_page = FPDF_LoadPage(m_doc, m_index);
 
+    m_width = FPDF_GetPageWidth(m_page);
+
+    m_height = FPDF_GetPageHeight(m_page);
+
     m_textPage = FPDFText_LoadPage(m_page);
 
     //获取当前注释
@@ -49,8 +57,6 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
     for (int i = 0; i < annotCount; ++i) {
         FPDF_ANNOTATION annot = FPDFPage_GetAnnot(m_page, i);
-
-        qDebug() << i << ":" << FPDFPage_GetAnnotIndex(m_page, annot);
 
         FPDF_ANNOTATION_SUBTYPE subType = FPDFAnnot_GetSubtype(annot);
 
@@ -61,14 +67,55 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
         else if (FPDF_ANNOT_HIGHLIGHT == subType)
             type = DPdfAnnot::AHighlight;
 
-        DPdfAnnot *dAnnot = new DPdfAnnot(type);
-        if (DPdfAnnot::AUnknown != type) {
+//        @@@@@@@@  "Border"
+//        @@@@@@@@  "C"
+//        @@@@@@@@  "CA"
+//        @@@@@@@@  "Contents"
+//        @@@@@@@@  "F"
+//        @@@@@@@@  "M"
+//        @@@@@@@@  "NM"
+//        @@@@@@@@  "P"
+//        @@@@@@@@  "Rect"
+//        @@@@@@@@  "Subtype"
+//        @@@@@@@@  "T"
+//        @@@@@@@@  "Type"
+
+        //    |----------------------------------|
+        //    |--------right-------              |
+        //    |                                  |
+        //    |----left----........              |
+        //    |            |.     .              |
+        //    |            |. . . .              |
+        //    |           top     |bottom        |
+        //    |            |      |              |
+        //    |----------------------------------|
+
+        if (DPdfAnnot::AText == type) {
+            DPdfTextAnnot *dAnnot = new DPdfTextAnnot;
             FS_RECTF rectF;
-            if (FPDFAnnot_GetRect(annot, &rectF)) {
-                dAnnot->setBoundary(QRectF(rectF.left, rectF.top, (rectF.right - rectF.left), (rectF.bottom - rectF.top)));
+            if (FPDFAnnot_GetRect(annot, &rectF)) {//注释图标为24x24
+                dAnnot->setPos(QPointF(rectF.left + 12, m_height - rectF.top + 12));
             }
+
+            FPDF_WCHAR buffer[1024];
+            FPDFAnnot_GetStringValue(annot, "Contents", buffer, 1024);
+            dAnnot->m_text = QString::fromUtf16(buffer);
+            m_dAnnots.append(dAnnot);
+        } else if (DPdfAnnot::AHighlight == type) {
+            DPdfHightLightAnnot *dAnnot = new DPdfHightLightAnnot;
+//            FS_RECTF rectF;
+//            if (FPDFAnnot_GetRect(annot, &rectF)) {
+//                dAnnot->setBoundary(QRectF(rectF.left, m_height - rectF.top, (rectF.right - rectF.left), (rectF.top - rectF.bottom)));
+//            }
+
+            FPDF_WCHAR buffer[1024];
+            FPDFAnnot_GetStringValue(annot, "Contents", buffer, 1024);
+            dAnnot->m_text = QString::fromUtf16(buffer);
+            m_dAnnots.append(dAnnot);
+        } else {//其他类型
+            DPdfUnknownAnnot *dAnnot = new DPdfUnknownAnnot;
+            m_dAnnots.append(dAnnot);
         }
-        m_dAnnots.append(dAnnot);
 
         FPDFPage_CloseAnnot(annot);
     }
@@ -134,7 +181,7 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
 
     FPDF_RenderPageBitmap(bitmap, d_func()->m_page,
                           0, 0, image.width(), image.height(),
-                          0, 0); // no rotation, no flags
+                          0, FPDF_ANNOT); // no rotation, no flags
     FPDFBitmap_Destroy(bitmap);
     bitmap = NULL;
 
@@ -223,49 +270,107 @@ DPdfPage::Link DPdfPage::getLinkAtPoint(qreal x, qreal y)
     return link;
 }
 
-bool DPdfPage::createAnnot(int annotType, QColor color, QRectF boudary)
+DPdfAnnot *DPdfPage::createTextAnnot(QPoint point, QString text)
 {
-    FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_UNKNOWN;
-
-    if (DPdfAnnot::AText == annotType)
-        subType = FPDF_ANNOT_TEXT;
-    else if (DPdfAnnot::AHighlight == annotType)
-        subType = FPDF_ANNOT_HIGHLIGHT;
-    else
-        return false;
+    FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_TEXT;
 
     FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(d_func()->m_page, subType);
 
-    if (color.isValid() && !FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, color.red(), color.green(), color.blue(), color.alpha())) {
+    FS_RECTF rectF;
+    rectF.left = point.x() - 10;
+    rectF.top = height() - point.y() - 10;
+    rectF.right = point.x() + 1 - 10;
+    rectF.bottom = height() - point.y() - 1 - 10;
+
+    if (!FPDFAnnot_SetRect(annot, &rectF)) {
+        FPDFPage_CloseAnnot(annot);
+        return nullptr;
+    }
+
+    if (!FPDFAnnot_SetStringValue(annot, "Contents", text.utf16())) {
+        FPDFPage_CloseAnnot(annot);
+        return nullptr;
+    }
+
+    FPDFPage_CloseAnnot(annot);
+
+    DPdfTextAnnot *dAnnot = new DPdfTextAnnot;
+
+    dAnnot->setPos(QPointF(point.x() - 12, point.y() - 12));
+
+    dAnnot->setText(text);
+
+    d_func()->m_dAnnots.append(dAnnot);
+
+    emit annotAdded(dAnnot);
+
+    return dAnnot;
+}
+
+bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QPoint point, QString text)
+{
+    int index = d_func()->m_dAnnots.indexOf(dAnnot);
+
+    FPDF_ANNOTATION annot = FPDFPage_GetAnnot(d_func()->m_page, index);
+
+    FS_RECTF rectF;
+    rectF.left = point.x() - 10;
+    rectF.top = height() - point.y() - 10;
+    rectF.right = point.x() + 1 - 10;
+    rectF.bottom = height() - point.y() - 1 - 10;
+
+    if (!FPDFAnnot_SetRect(annot, &rectF)) {
         FPDFPage_CloseAnnot(annot);
         return false;
     }
 
-    FS_RECTF rectF;
-    rectF.left = boudary.x();
-    rectF.top = boudary.y();
-    rectF.left = boudary.x() + boudary.width();
-    rectF.bottom = boudary.y() + boudary.height();
-
-    if (boudary.isValid() && !FPDFAnnot_SetRect(annot, &rectF)) {
+    if (!FPDFAnnot_SetStringValue(annot, "Contents", text.utf16())) {
         FPDFPage_CloseAnnot(annot);
         return false;
     }
 
     FPDFPage_CloseAnnot(annot);
 
-    DPdfAnnot *dAnnot = new DPdfAnnot((DPdfAnnot::AnnotType)annotType);
+    emit annotUpdated(dAnnot);
 
-    dAnnot->setBoundary(boudary);
+    return true;
+}
+
+DPdfAnnot *DPdfPage::createHightLightAnnot(QColor color, QString text)
+{
+    FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_HIGHLIGHT;
+
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(d_func()->m_page, subType);
+
+    if (color.isValid() && !FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, color.red(), color.green(), color.blue(), color.alpha())) {
+        FPDFPage_CloseAnnot(annot);
+        return nullptr;
+    }
+
+    //...更新高亮点点
+    //...
+
+    if (!FPDFAnnot_SetStringValue(annot, "Contents", text.utf16())) {
+        FPDFPage_CloseAnnot(annot);
+        return nullptr;
+    }
+
+    FPDFPage_CloseAnnot(annot);
+
+    DPdfHightLightAnnot *dAnnot = new DPdfHightLightAnnot;
+
+    dAnnot->setColor(color);
+
+    dAnnot->setText(text);
 
     d_func()->m_dAnnots.append(dAnnot);
 
     emit annotAdded(dAnnot);
 
-    return true;
+    return dAnnot;
 }
 
-bool DPdfPage::updateAnnot(DPdfAnnot *dAnnot, QColor color, QRectF boudary)
+bool DPdfPage::updateHightLightAnnot(DPdfAnnot *dAnnot, QColor color, QString text)
 {
     int index = d_func()->m_dAnnots.indexOf(dAnnot);
 
@@ -276,13 +381,7 @@ bool DPdfPage::updateAnnot(DPdfAnnot *dAnnot, QColor color, QRectF boudary)
         return false;
     }
 
-    FS_RECTF rectF;
-    rectF.left = boudary.x();
-    rectF.top = boudary.y();
-    rectF.left = boudary.x() + boudary.width();
-    rectF.bottom = boudary.y() + boudary.height();
-
-    if (boudary.isValid() && !FPDFAnnot_SetRect(annot, &rectF)) {
+    if (!FPDFAnnot_SetStringValue(annot, "Contents", text.utf16())) {
         FPDFPage_CloseAnnot(annot);
         return false;
     }

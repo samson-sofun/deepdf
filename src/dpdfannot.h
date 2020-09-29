@@ -4,6 +4,9 @@
 #include "dpdfglobal.h"
 
 #include <QRectF>
+#include <QString>
+#include <QList>
+#include <QColor>
 
 class DEEPIN_PDFIUM_EXPORT DPdfAnnot
 {
@@ -15,32 +18,63 @@ public:
         ALink = 3
     };
 
+    virtual ~DPdfAnnot();
     /**
-     * @brief  Returns this annotation's boundary rectangle(width/height is 1 base)
+     * @brief 是否在该点上
+     * @param pos
      * @return
      */
-    QRectF boundary() const;
-
-    /**
-     * @brief Sets this annotation's boundary rectangle
-     * @param boundary
-     */
-    void setBoundary(const QRectF &boundary);
+    virtual bool pointIn(QPointF pos) = 0;
 
     AnnotType type();
 
-    void setType(AnnotType type);
+    void setText(QString text);
 
-private:
-    friend class DPdfPage;
-    friend class DPdfPagePrivate;
+    QString text();
 
-    DPdfAnnot(AnnotType type);
-
+protected:
     AnnotType m_type;
-
-    QRectF m_boundary;
+    QString m_text;
 };
 
+class DEEPIN_PDFIUM_EXPORT DPdfTextAnnot : public DPdfAnnot
+{
+    friend class DPdfPage;
+    friend class DPdfPagePrivate;
+public:
+    DPdfTextAnnot();
 
+    bool pointIn(QPointF pos) override;
+
+    void setPos(QPointF pos);
+
+private:
+    QPointF m_pos;
+};
+
+class DEEPIN_PDFIUM_EXPORT DPdfHightLightAnnot : public DPdfAnnot
+{
+    friend class DPdfPage;
+    friend class DPdfPagePrivate;
+public:
+    DPdfHightLightAnnot();
+
+    bool pointIn(QPointF pos) override;
+
+    void setColor(QColor color);
+
+    QColor color();
+
+private:
+    QList<QRectF> m_rectFList;
+    QColor m_color;
+};
+
+class DEEPIN_PDFIUM_EXPORT DPdfUnknownAnnot : public DPdfAnnot
+{
+public:
+    DPdfUnknownAnnot();
+
+    bool pointIn(QPointF pos) override;
+};
 #endif // DPDFANNOT_H

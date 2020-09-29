@@ -103,21 +103,37 @@ public:
     Link getLinkAtPoint(qreal x, qreal y);
 
     /**
-     * @brief 添加注释
-     * @param color 传空则不添加颜色
-     * @param boudary 传空则不添加位置 基于坐标系(0~1)
-     * @return
+     * @brief 添加文字注释
+     * @param point 点击的位置
+     * @return 添加失败返回nullptr
      */
-    bool createAnnot(int annotType, QColor color = QColor(), QRectF boudary = QRectF());
+    DPdfAnnot *createTextAnnot(QPoint point, QString text = "");
 
     /**
      * @brief 更新注释
-     * @param annot 给更新的注释指针，执行成功传入的指针会被删除
-     * @param color 传空则不更新颜色
-     * @param boudary 传空则不更新位置 基于坐标系(0~1)
+     * @param dAnnot 给更新的注释指针
+     * @param point 点击的位置
+     * @param text 注释文字
      * @return
      */
-    bool updateAnnot(DPdfAnnot *dAnnot, QColor color = QColor(), QRectF boudary = QRectF());
+    bool updateTextAnnot(DPdfAnnot *dAnnot, QPoint point, QString text = "");
+
+    /**
+     * @brief 添加高亮注释
+     * @param color 传空则不添加颜色
+     * @param boudary 传空则不添加位置 基于文档原始大小
+     * @return
+     */
+    DPdfAnnot *createHightLightAnnot(QColor color = QColor(), QString text = "");
+
+    /**
+     * @brief 更新高亮注释
+     * @param dAnnot 给更新的注释指针
+     * @param color 传空则不更新颜色
+     * @param boudary 传空则不更新位置 基于文档原始大小
+     * @return
+     */
+    bool updateHightLightAnnot(DPdfAnnot *dAnnot, QColor color = QColor(), QString text = "");
 
     /**
      * @brief 删除注释
