@@ -92,17 +92,31 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
         if (DPdfAnnot::AText == type) {
             DPdfTextAnnot *dAnnot = new DPdfTextAnnot;
+
+            //获取位置
             FS_RECTF rectF;
             if (FPDFAnnot_GetRect(annot, &rectF)) {//注释图标为24x24
                 dAnnot->setPos(QPointF(rectF.left + 12, m_height - rectF.top + 12));
             }
 
+            //获取文本
             FPDF_WCHAR buffer[1024];
             FPDFAnnot_GetStringValue(annot, "Contents", buffer, 1024);
             dAnnot->m_text = QString::fromUtf16(buffer);
+
             m_dAnnots.append(dAnnot);
         } else if (DPdfAnnot::AHighlight == type) {
             DPdfHightLightAnnot *dAnnot = new DPdfHightLightAnnot;
+            //获取颜色
+            unsigned int r = 0;
+            unsigned int g = 0;
+            unsigned int b = 0;
+            unsigned int a = 255;
+            if (FPDFAnnot_GetColor(annot, FPDFANNOT_COLORTYPE_Color, r, g, b, a)) {
+                dAnnot->setColor(QColor(r, g, b, a));
+            }
+
+            //获取区域
             int quadCount = FPDFAnnot_CountAttachmentPoints(annot);
             QList<QRectF> list;
             for (int i = 0; i < quadCount; ++i) {
@@ -120,11 +134,13 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
             }
             dAnnot->setRectList(list);
 
+            //获取文本
             FPDF_WCHAR buffer[1024];
             FPDFAnnot_GetStringValue(annot, "Contents", buffer, 1024);
             dAnnot->m_text = QString::fromUtf16(buffer);
+
             m_dAnnots.append(dAnnot);
-        } else {//其他类型
+        } else {//其他类型 用于占位 对应索引
             DPdfUnknownAnnot *dAnnot = new DPdfUnknownAnnot;
             m_dAnnots.append(dAnnot);
         }
@@ -319,7 +335,7 @@ DPdfAnnot *DPdfPage::createTextAnnot(QPoint point, QString text)
     return dAnnot;
 }
 
-bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QPoint point, QString text)
+bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text = "", QPointF point = QPointF())
 {
     DPdfTextAnnot *textAnnot = static_cast<DPdfTextAnnot *>(dAnnot);
 
@@ -330,34 +346,35 @@ bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QPoint point, QString text)
 
     FPDF_ANNOTATION annot = FPDFPage_GetAnnot(d_func()->m_page, index);
 
-    FS_RECTF rectF;
-    rectF.left = point.x() - 10;
-    rectF.top = height() - point.y() - 10;
-    rectF.right = point.x() + 1 - 10;
-    rectF.bottom = height() - point.y() - 1 - 10;
-
-    if (!FPDFAnnot_SetRect(annot, &rectF)) {
-        FPDFPage_CloseAnnot(annot);
-        return false;
-    }
-
     if (!FPDFAnnot_SetStringValue(annot, "Contents", text.utf16())) {
         FPDFPage_CloseAnnot(annot);
         return false;
     }
+    textAnnot->setText(text);
+
+    if (!point.isNull()) {
+        FS_RECTF rectF;
+        rectF.left = point.x() - 12;
+        rectF.top = height() - point.y() - 12;
+        rectF.right = rectF.left + 12;
+        rectF.bottom = rectF.top - 12;
+
+        if (!FPDFAnnot_SetRect(annot, &rectF)) {
+            FPDFPage_CloseAnnot(annot);
+            return false;
+        }
+
+        textAnnot->setPos(point);
+    }
 
     FPDFPage_CloseAnnot(annot);
-
-    textAnnot->setPos(point);
-
-    textAnnot->setText(text);
 
     emit annotUpdated(dAnnot);
 
     return true;
 }
 
-DPdfAnnot *DPdfPage::createHightLightAnnot(QList<QRectF> list, QColor color, QString text)
+DPdfAnnot *DPdfPage::createHightLightAnnot(QList<QRectF> list, QString text, QColor color = QColor())
 {
     FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_HIGHLIGHT;
 
@@ -416,21 +433,21 @@ bool DPdfPage::updateHightLightAnnot(DPdfAnnot *dAnnot, QColor color, QString te
 
     FPDF_ANNOTATION annot = FPDFPage_GetAnnot(d_func()->m_page, index);
 
-    if (color.isValid() && !FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, color.red(), color.green(), color.blue(), color.alpha())) {
-        FPDFPage_CloseAnnot(annot);
-        return false;
+    if (color.isValid()) {
+        if (!FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, color.red(), color.green(), color.blue(), color.alpha())) {
+            FPDFPage_CloseAnnot(annot);
+            return false;
+        }
+        hightLightAnnot->setColor(color);
     }
 
     if (!FPDFAnnot_SetStringValue(annot, "Contents", text.utf16())) {
         FPDFPage_CloseAnnot(annot);
         return false;
     }
+    hightLightAnnot->setText(text);
 
     FPDFPage_CloseAnnot(annot);
-
-    hightLightAnnot->setColor(color);
-
-    hightLightAnnot->setText(text);
 
     emit annotUpdated(dAnnot);
 

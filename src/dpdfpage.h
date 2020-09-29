@@ -105,32 +105,34 @@ public:
     /**
      * @brief 添加文字注释
      * @param point 点击的位置
+     * @param text 注释内容
      * @return 添加失败返回nullptr
      */
-    DPdfAnnot *createTextAnnot(QPoint point, QString text = "");
+    DPdfAnnot *createTextAnnot(QPoint point, QString text);
 
     /**
      * @brief 更新注释
      * @param dAnnot 给更新的注释指针
-     * @param point 点击的位置
      * @param text 注释文字
+     * @param point 点击的位置 传空则不更新
      * @return
      */
-    bool updateTextAnnot(DPdfAnnot *dAnnot, QPoint point, QString text = "");
+    bool updateTextAnnot(DPdfAnnot *dAnnot, QString text, QPointF point = QPointF());
 
     /**
      * @brief 添加高亮注释
-     * @param color 传空则不添加颜色
-     * @param boudary 传空则不添加位置 基于文档原始大小
-     * @return
+     * @param list 高亮的区域 以文档大小为基础
+     * @param text 注释内容
+     * @param color 高亮颜色
+     * @return 添加失败返回nullptr
      */
-    DPdfAnnot *createHightLightAnnot(QList<QRectF> list, QColor color = QColor(), QString text = "");
+    DPdfAnnot *createHightLightAnnot(QList<QRectF> list, QString text, QColor color = QColor());
 
     /**
      * @brief 更新高亮注释
      * @param dAnnot 给更新的注释指针
      * @param color 传空则不更新颜色
-     * @param boudary 传空则不更新位置 基于文档原始大小
+     * @param text 注释文字
      * @return
      */
     bool updateHightLightAnnot(DPdfAnnot *dAnnot,  QColor color = QColor(), QString text = "");
