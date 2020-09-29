@@ -14,11 +14,6 @@ HEADERS += \
     $$PWD/pdfium/fpdfsdk/formfiller/cffl_radiobutton.h \
     $$PWD/pdfium/fpdfsdk/formfiller/cffl_textfield.h \
     $$PWD/pdfium/fpdfsdk/formfiller/cffl_textobject.h \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_context.h \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_docenvironment.h \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_page.h \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_widget.h \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_widgethandler.h \
     $$PWD/pdfium/fpdfsdk/pwl/cpwl_button.h \
     $$PWD/pdfium/fpdfsdk/pwl/cpwl_caret.h \
     $$PWD/pdfium/fpdfsdk/pwl/cpwl_combo_box.h \
@@ -51,7 +46,6 @@ HEADERS += \
     $$PWD/pdfium/fpdfsdk/cpdfsdk_renderpage.h \
     $$PWD/pdfium/fpdfsdk/cpdfsdk_widget.h \
     $$PWD/pdfium/fpdfsdk/cpdfsdk_widgethandler.h \
-    $$PWD/pdfium/fpdfsdk/fpdf_view_c_api_test.h \
     $$PWD/pdfium/fpdfsdk/ipdfsdk_annothandler.h
 
 SOURCES += \
@@ -65,11 +59,6 @@ SOURCES += \
     $$PWD/pdfium/fpdfsdk/formfiller/cffl_radiobutton.cpp \
     $$PWD/pdfium/fpdfsdk/formfiller/cffl_textfield.cpp \
     $$PWD/pdfium/fpdfsdk/formfiller/cffl_textobject.cpp \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_context.cpp \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_docenvironment.cpp \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_page.cpp \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_widget.cpp \
-#    $$PWD/pdfium/fpdfsdk/fpdfxfa/cpdfxfa_widgethandler.cpp \
     $$PWD/pdfium/fpdfsdk/pwl/cpwl_button.cpp \
     $$PWD/pdfium/fpdfsdk/pwl/cpwl_caret.cpp \
     $$PWD/pdfium/fpdfsdk/pwl/cpwl_combo_box.cpp \
@@ -124,7 +113,6 @@ SOURCES += \
     $$PWD/pdfium/fpdfsdk/fpdf_text.cpp \
     $$PWD/pdfium/fpdfsdk/fpdf_thumbnail.cpp \
     $$PWD/pdfium/fpdfsdk/fpdf_transformpage.cpp \
-    $$PWD/pdfium/fpdfsdk/fpdf_view.cpp \
-    $$PWD/pdfium/fpdfsdk/fpdf_view_c_api_test.c
+    $$PWD/pdfium/fpdfsdk/fpdf_view.cpp
 
 
