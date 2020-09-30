@@ -14,8 +14,12 @@ DEFINES +=  USE_SYSTEM_LIBJPEG \
             USE_SYSTEM_LIBPNG \
             USE_SYSTEM_ICUUC
 
+QMAKE_CXXFLAGS += "-Wc++11-narrowing"
+QMAKE_CXXFLAGS += "-Wno-inconsistent-missing-override"  # Suppress no override warning for overridden functions.
+
 if(QMAKE_HOST.arch, x86_64) {
     DEFINES += "_FX_CPU_=_FX_X64_"
+    QMAKE_CXXFLAGS += "-fPIC"
 } else {
     DEFINES += "_FX_CPU_=_FX_X32_"
 }
