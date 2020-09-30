@@ -14,9 +14,9 @@ DEFINES +=  USE_SYSTEM_LIBJPEG \
             USE_SYSTEM_LIBPNG \
             USE_SYSTEM_ICUUC
 
-QMAKE_CXXFLAGS += "-Wc++11-narrowing"
-QMAKE_CXXFLAGS += "-Wno-inconsistent-missing-override"  # Suppress no override warning for overridden functions.
-QMAKE_CXXFLAGS += "-Wno-switch" # http://code.google.com/p/pdfium/issues/detail?id=188
+#QMAKE_CXXFLAGS += "-Wc++11-narrowing"  #is_clang
+#QMAKE_CXXFLAGS += "-Wno-inconsistent-missing-override"  #is_clang Suppress no override warning for overridden functions.
+#QMAKE_CXXFLAGS += "-Wno-switch" #is_clang http://code.google.com/p/pdfium/issues/detail?id=188
 
 contains(QMAKE_HOST.arch, x86_64)  {
     DEFINES += "_FX_CPU_=_FX_X64_"

@@ -170,38 +170,38 @@ HEADERS += \
     $$PWD/pdfium/core/fpdftext/cpdf_textpage.h \
     $$PWD/pdfium/core/fpdftext/cpdf_textpagefind.h \
     $$PWD/pdfium/core/fpdftext/unicodenormalizationdata.h \
-    $$PWD/pdfium/core/fxcodec/basic/basicmodule.h" \
-    $$PWD/pdfium/core/fxcodec/cfx_codec_memory.h" \
-    $$PWD/pdfium/core/fxcodec/fax/faxmodule.h" \
-    $$PWD/pdfium/core/fxcodec/flate/flatemodule.h" \
-    $$PWD/pdfium/core/fxcodec/fx_codec.h" \
-    $$PWD/pdfium/core/fxcodec/fx_codec_def.h" \
-    $$PWD/pdfium/core/fxcodec/icc/iccmodule.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_ArithDecoder.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_ArithIntDecoder.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_BitStream.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Context.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Define.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_DocumentContext.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_GrdProc.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_GrrdProc.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HtrdProc.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HuffmanDecoder.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HuffmanTable.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Image.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Page.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_PatternDict.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_PddProc.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_SddProc.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Segment.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_SymbolDict.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_TrdProc.h" \
-    $$PWD/pdfium/core/fxcodec/jbig2/jbig2_decoder.h" \
-    $$PWD/pdfium/core/fxcodec/jpeg/jpeg_common.h" \
-    $$PWD/pdfium/core/fxcodec/jpeg/jpegmodule.h" \
-    $$PWD/pdfium/core/fxcodec/jpx/cjpx_decoder.h" \
-    $$PWD/pdfium/core/fxcodec/jpx/jpx_decode_utils.h" \
-    $$PWD/pdfium/core/fxcodec/scanlinedecoder.h" \
+    $$PWD/pdfium/core/fxcodec/basic/basicmodule.h \
+    $$PWD/pdfium/core/fxcodec/cfx_codec_memory.h \
+    $$PWD/pdfium/core/fxcodec/fax/faxmodule.h \
+    $$PWD/pdfium/core/fxcodec/flate/flatemodule.h \
+    $$PWD/pdfium/core/fxcodec/fx_codec.h \
+    $$PWD/pdfium/core/fxcodec/fx_codec_def.h \
+    $$PWD/pdfium/core/fxcodec/icc/iccmodule.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_ArithDecoder.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_ArithIntDecoder.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_BitStream.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Context.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Define.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_DocumentContext.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_GrdProc.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_GrrdProc.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HtrdProc.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HuffmanDecoder.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HuffmanTable.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Image.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Page.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_PatternDict.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_PddProc.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_SddProc.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Segment.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_SymbolDict.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_TrdProc.h \
+    $$PWD/pdfium/core/fxcodec/jbig2/jbig2_decoder.h \
+    $$PWD/pdfium/core/fxcodec/jpeg/jpeg_common.h \
+    $$PWD/pdfium/core/fxcodec/jpeg/jpegmodule.h \
+    $$PWD/pdfium/core/fxcodec/jpx/cjpx_decoder.h \
+    $$PWD/pdfium/core/fxcodec/jpx/jpx_decode_utils.h \
+    $$PWD/pdfium/core/fxcodec/scanlinedecoder.h \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmlchardata.h \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmldocument.h \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmlelement.h \
@@ -514,35 +514,35 @@ SOURCES += \
     $$PWD/pdfium/core/fpdftext/cpdf_textpage.cpp \
     $$PWD/pdfium/core/fpdftext/cpdf_textpagefind.cpp \
     $$PWD/pdfium/core/fpdftext/unicodenormalizationdata.cpp \
-    $$PWD/pdfium/core/fxcodec/basic/basicmodule.cpp" \
-    $$PWD/pdfium/core/fxcodec/cfx_codec_memory.cpp" \
-    $$PWD/pdfium/core/fxcodec/fax/faxmodule.cpp" \
-    $$PWD/pdfium/core/fxcodec/flate/flatemodule.cpp" \
-    $$PWD/pdfium/core/fxcodec/fx_codec.cpp" \
-    $$PWD/pdfium/core/fxcodec/icc/iccmodule.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_ArithDecoder.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_ArithIntDecoder.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_BitStream.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Context.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_DocumentContext.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_GrdProc.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_GrrdProc.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HtrdProc.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HuffmanDecoder.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HuffmanTable.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Image.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_PatternDict.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_PddProc.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_SddProc.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Segment.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_SymbolDict.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_TrdProc.cpp" \
-    $$PWD/pdfium/core/fxcodec/jbig2/jbig2_decoder.cpp" \
-    $$PWD/pdfium/core/fxcodec/jpeg/jpeg_common.cpp" \
-    $$PWD/pdfium/core/fxcodec/jpeg/jpegmodule.cpp" \
-    $$PWD/pdfium/core/fxcodec/jpx/cjpx_decoder.cpp" \
-    $$PWD/pdfium/core/fxcodec/jpx/jpx_decode_utils.cpp" \
-    $$PWD/pdfium/core/fxcodec/scanlinedecoder.cpp" \
+    $$PWD/pdfium/core/fxcodec/basic/basicmodule.cpp \
+    $$PWD/pdfium/core/fxcodec/cfx_codec_memory.cpp \
+    $$PWD/pdfium/core/fxcodec/fax/faxmodule.cpp \
+    $$PWD/pdfium/core/fxcodec/flate/flatemodule.cpp \
+    $$PWD/pdfium/core/fxcodec/fx_codec.cpp \
+    $$PWD/pdfium/core/fxcodec/icc/iccmodule.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_ArithDecoder.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_ArithIntDecoder.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_BitStream.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Context.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_DocumentContext.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_GrdProc.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_GrrdProc.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HtrdProc.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HuffmanDecoder.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_HuffmanTable.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Image.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_PatternDict.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_PddProc.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_SddProc.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_Segment.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_SymbolDict.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/JBig2_TrdProc.cpp \
+    $$PWD/pdfium/core/fxcodec/jbig2/jbig2_decoder.cpp \
+    $$PWD/pdfium/core/fxcodec/jpeg/jpeg_common.cpp \
+    $$PWD/pdfium/core/fxcodec/jpeg/jpegmodule.cpp \
+    $$PWD/pdfium/core/fxcodec/jpx/cjpx_decoder.cpp \
+    $$PWD/pdfium/core/fxcodec/jpx/jpx_decode_utils.cpp \
+    $$PWD/pdfium/core/fxcodec/scanlinedecoder.cpp \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmlchardata.cpp \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmldocument.cpp \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmlelement.cpp \
