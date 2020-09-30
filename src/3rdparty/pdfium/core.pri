@@ -202,27 +202,6 @@ HEADERS += \
     $$PWD/pdfium/core/fxcodec/jpx/cjpx_decoder.h" \
     $$PWD/pdfium/core/fxcodec/jpx/jpx_decode_utils.h" \
     $$PWD/pdfium/core/fxcodec/scanlinedecoder.h" \
-    $$PWD/pdfium/core/fxcrt/css/cfx_css.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csscolorvalue.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csscomputedstyle.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csscustomproperty.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssdata.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssdeclaration.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssenumvalue.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssexttextbuf.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssnumbervalue.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csspropertyholder.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssrulecollection.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssselector.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssstringvalue.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssstylerule.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssstyleselector.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssstylesheet.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csssyntaxparser.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csstextbuf.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssvalue.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssvaluelist.h \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssvaluelistparser.h \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmlchardata.h \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmldocument.h \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmlelement.h \
@@ -237,9 +216,7 @@ HEADERS += \
     $$PWD/pdfium/core/fxcrt/cfx_binarybuf.h \
     $$PWD/pdfium/core/fxcrt/cfx_bitstream.h \
     $$PWD/pdfium/core/fxcrt/cfx_datetime.h \
-    $$PWD/pdfium/core/fxcrt/cfx_fileaccess_posix.h \
     $$PWD/pdfium/core/fxcrt/cfx_fixedbufgrow.h \
-    $$PWD/pdfium/core/fxcrt/cfx_memorystream.h \
     $$PWD/pdfium/core/fxcrt/cfx_readonlymemorystream.h \
     $$PWD/pdfium/core/fxcrt/cfx_seekablestreamproxy.h \
     $$PWD/pdfium/core/fxcrt/cfx_timer.h \
@@ -274,12 +251,10 @@ HEADERS += \
     $$PWD/pdfium/core/fxcrt/unowned_ptr.h \
     $$PWD/pdfium/core/fxcrt/weak_ptr.h \
     $$PWD/pdfium/core/fxcrt/widestring.h \
-    $$PWD/pdfium/core/fxge/agg/fx_agg_driver.h \
     $$PWD/pdfium/core/fxge/dib/cfx_bitmapcomposer.h \
     $$PWD/pdfium/core/fxge/dib/cfx_bitmapstorer.h \
     $$PWD/pdfium/core/fxge/dib/cfx_cmyk_to_srgb.h \
     $$PWD/pdfium/core/fxge/dib/cfx_dibbase.h \
-    $$PWD/pdfium/core/fxge/dib/cfx_dibextractor.h \
     $$PWD/pdfium/core/fxge/dib/cfx_dibitmap.h \
     $$PWD/pdfium/core/fxge/dib/cfx_imagerenderer.h \
     $$PWD/pdfium/core/fxge/dib/cfx_imagestretcher.h \
@@ -309,7 +284,6 @@ HEADERS += \
     $$PWD/pdfium/core/fxge/cfx_substfont.h \
     $$PWD/pdfium/core/fxge/cfx_textrenderoptions.h \
     $$PWD/pdfium/core/fxge/cfx_unicodeencoding.h \
-    $$PWD/pdfium/core/fxge/cfx_unicodeencodingex.h \
     $$PWD/pdfium/core/fxge/fx_dib.h \
     $$PWD/pdfium/core/fxge/fx_font.h \
     $$PWD/pdfium/core/fxge/fx_freetype.h \
@@ -569,26 +543,6 @@ SOURCES += \
     $$PWD/pdfium/core/fxcodec/jpx/cjpx_decoder.cpp" \
     $$PWD/pdfium/core/fxcodec/jpx/jpx_decode_utils.cpp" \
     $$PWD/pdfium/core/fxcodec/scanlinedecoder.cpp" \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csscolorvalue.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csscomputedstyle.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csscustomproperty.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssdata.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssdeclaration.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssenumvalue.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssexttextbuf.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssnumbervalue.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csspropertyholder.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssrulecollection.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssselector.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssstringvalue.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssstylerule.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssstyleselector.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssstylesheet.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csssyntaxparser.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_csstextbuf.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssvalue.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssvaluelist.cpp \
-    $$PWD/pdfium/core/fxcrt/css/cfx_cssvaluelistparser.cpp \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmlchardata.cpp \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmldocument.cpp \
     $$PWD/pdfium/core/fxcrt/xml/cfx_xmlelement.cpp \
@@ -600,8 +554,6 @@ SOURCES += \
     $$PWD/pdfium/core/fxcrt/cfx_binarybuf.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_bitstream.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_datetime.cpp \
-    $$PWD/pdfium/core/fxcrt/cfx_fileaccess_posix.cpp \
-    $$PWD/pdfium/core/fxcrt/cfx_memorystream.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_readonlymemorystream.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_seekablestreamproxy.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_timer.cpp \
@@ -622,12 +574,10 @@ SOURCES += \
     $$PWD/pdfium/core/fxcrt/observed_ptr.cpp \
     $$PWD/pdfium/core/fxcrt/string_data_template.cpp \
     $$PWD/pdfium/core/fxcrt/widestring.cpp \
-    $$PWD/pdfium/core/fxge/agg/fx_agg_driver.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_bitmapcomposer.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_bitmapstorer.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_cmyk_to_srgb.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_dibbase.cpp \
-    $$PWD/pdfium/core/fxge/dib/cfx_dibextractor.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_dibitmap.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_imagerenderer.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_imagestretcher.cpp \
@@ -670,7 +620,6 @@ SOURCES += \
     $$PWD/pdfium/core/fxge/cfx_renderdevice.cpp \
     $$PWD/pdfium/core/fxge/cfx_substfont.cpp \
     $$PWD/pdfium/core/fxge/cfx_unicodeencoding.cpp \
-    $$PWD/pdfium/core/fxge/cfx_unicodeencodingex.cpp \
     $$PWD/pdfium/core/fxge/fx_font.cpp \
     $$PWD/pdfium/core/fxge/fx_ge_linux.cpp \
     $$PWD/pdfium/core/fxge/renderdevicedriver_iface.cpp \
