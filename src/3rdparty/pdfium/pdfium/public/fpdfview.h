@@ -870,6 +870,8 @@ FPDF_EXPORT void FPDF_CALLCONV FPDF_RenderPageBitmap(FPDF_BITMAP bitmap,
                                                      int start_y,
                                                      int size_x,
                                                      int size_y,
+                                                     int src_size_w,
+                                                     int src_size_h,
                                                      int rotate,
                                                      int flags);
 

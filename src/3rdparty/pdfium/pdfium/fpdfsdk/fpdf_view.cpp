@@ -647,6 +647,8 @@ FPDF_EXPORT void FPDF_CALLCONV FPDF_RenderPageBitmap(FPDF_BITMAP bitmap,
                                                      int start_y,
                                                      int size_x,
                                                      int size_y,
+                                                     int src_size_w,
+                                                     int src_size_h,
                                                      int rotate,
                                                      int flags)
 {
@@ -669,7 +671,7 @@ FPDF_EXPORT void FPDF_CALLCONV FPDF_RenderPageBitmap(FPDF_BITMAP bitmap,
     RetainPtr<CFX_DIBitmap> pBitmap(CFXDIBitmapFromFPDFBitmap(bitmap));
     pDevice->Attach(pBitmap, !!(flags & FPDF_REVERSE_BYTE_ORDER), nullptr, false);
     CPDFSDK_RenderPageWithContext(pContext, pPage, start_x, start_y, size_x,
-                                  size_y, rotate, flags, /*color_scheme=*/nullptr,
+                                  size_y, src_size_w, src_size_h, rotate, flags, /*color_scheme=*/nullptr,
                                   /*need_to_restore=*/true,
                                   /*pause=*/nullptr);
 
