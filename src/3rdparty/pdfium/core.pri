@@ -292,7 +292,9 @@ HEADERS += \
     $$PWD/pdfium/core/fxge/scoped_font_transform.h \
     $$PWD/pdfium/core/fxge/systemfontinfo_iface.h \
     $$PWD/pdfium/core/fxge/text_char_pos.h \
-    $$PWD/pdfium/core/fxge/text_glyph_pos.h
+    $$PWD/pdfium/core/fxge/text_glyph_pos.h \
+    $$PWD/pdfium/core/fxge/agg/fx_agg_driver.h \
+    $$PWD/pdfium/core/fxcrt/cfx_fileaccess_posix.h
 
 SOURCES += \
     $$PWD/pdfium/core/fdrm/fx_crypt.cpp \
@@ -625,5 +627,7 @@ SOURCES += \
     $$PWD/pdfium/core/fxge/renderdevicedriver_iface.cpp \
     $$PWD/pdfium/core/fxge/scoped_font_transform.cpp \
     $$PWD/pdfium/core/fxge/text_char_pos.cpp \
-    $$PWD/pdfium/core/fxge/text_glyph_pos.cpp
+    $$PWD/pdfium/core/fxge/text_glyph_pos.cpp \
+    $$PWD/pdfium/core/fxge/agg/fx_agg_driver.cpp \
+    $$PWD/pdfium/core/fxcrt/cfx_fileaccess_posix.cpp
 
