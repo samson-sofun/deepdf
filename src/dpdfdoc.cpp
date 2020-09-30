@@ -12,14 +12,6 @@
 #include <QFile>
 #include <QDebug>
 
-DPdfDoc::DPdfDoc()
-    : m_docHandler(nullptr)
-    , m_pageCount(0)
-    , m_status(NOT_LOADED)
-{
-
-}
-
 DPdfDoc::DPdfDoc(QString filename, QString password)
     : m_docHandler(nullptr)
     , m_pageCount(0)
@@ -49,7 +41,28 @@ bool DPdfDoc::isEncrypted() const
     return FPDF_GetDocPermissions((FPDF_DOCUMENT)m_docHandler) != 0xFFFFFFFF;
 }
 
-DPdfDoc::Status DPdfDoc::loadFile(QString filename, QString password)
+DPdfDoc::Status DPdfDoc::tryLoadFile(const QString &filename, const QString &password)
+{
+    Status status = NOT_LOADED;
+    if (!QFile::exists(filename)) {
+        status = FILE_NOT_FOUND_ERROR;
+        return status;
+    }
+
+    void *ptr = FPDF_LoadDocument(filename.toUtf8().constData(),
+                                  password.toUtf8().constData());
+
+    DPdfDocHandler *docHandler = static_cast<DPdfDocHandler *>(ptr);
+    status = docHandler ? SUCCESS : parseError(FPDF_GetLastError());
+
+    if (docHandler) {
+        FPDF_CloseDocument((FPDF_DOCUMENT)docHandler);
+    }
+
+    return status;
+}
+
+DPdfDoc::Status DPdfDoc::loadFile(const QString &filename, const QString &password)
 {
     m_filename = filename;
 

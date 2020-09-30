@@ -209,7 +209,7 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
 
     FPDF_RenderPageBitmap(bitmap, d_func()->m_page,
                           0, 0, image.width(), image.height(),
-                          0, FPDF_ANNOT); // no rotation, no flags
+                          0, FPDF_ANNOT);
     FPDFBitmap_Destroy(bitmap);
     bitmap = NULL;
 
@@ -286,6 +286,12 @@ DPdfPage::Link DPdfPage::getLinkAtPoint(qreal x, qreal y)
     CPDF_Document *pDoc = reinterpret_cast<CPDF_Document *>(d_func()->m_doc);
     const CPDF_Action &cAction = cLink.GetAction();
     const CPDF_Dest &dest = cAction.GetDest(pDoc);
+
+    bool hasx = false, hasy = false, haszoom = false;
+    float offsetx = 0.0, offsety = 0.0, z = 0.0;
+    dest.GetXYZ(&hasx, &hasy, &haszoom, &offsetx, &offsety, &z);
+    link.left = offsetx;
+    link.top = offsety;
 
     link.nIndex = dest.GetDestPageIndex(pDoc);
     if (cAction.GetType() == CPDF_Action::URI) {

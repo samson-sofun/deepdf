@@ -20,6 +20,8 @@ class DEEPIN_PDFIUM_EXPORT DPdfPage : public QObject
 public:
     struct Link {
         int nIndex = -1;
+        qreal left = 0.0;
+        qreal top = 0.0;
         QString urlpath;
 
         bool isValid()

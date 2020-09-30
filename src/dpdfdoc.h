@@ -35,7 +35,6 @@ public:
         Outline children;
     };
 
-    explicit DPdfDoc();
     DPdfDoc(QString filename, QString password = QString());
 
     virtual ~DPdfDoc();
@@ -97,14 +96,22 @@ public:
      */
     Properies proeries();
 
-public Q_SLOTS:
+    /**
+     * @brief 尝试加载文档是否成功
+     * @param filename
+     * @param password
+     * @return
+     */
+    static Status tryLoadFile(const QString &filename, const QString &password = QString());
+
+private:
     /**
      * @brief 加载文档
      * @param filename
      * @param password
      * @return
      */
-    Status loadFile(QString filename, QString password = QString());
+    Status loadFile(const QString &filename, const QString &password = QString());
 
 private:
     Q_DISABLE_COPY(DPdfDoc)
@@ -113,7 +120,7 @@ private:
     QString m_filename;
     int m_pageCount;
     Status m_status;
-    DPdfDoc::Status parseError(int err);
+    static DPdfDoc::Status parseError(int err);
 };
 
 #endif // DPDFDOC_H
