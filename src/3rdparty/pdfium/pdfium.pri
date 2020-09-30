@@ -21,8 +21,12 @@ DEFINES +=  USE_SYSTEM_LIBJPEG \
 contains(QMAKE_HOST.arch, x86_64)  {
     DEFINES += "_FX_CPU_=_FX_X64_"
     QMAKE_CXXFLAGS += "-fPIC"
-} else {
-    DEFINES += "_FX_CPU_=_FX_X32_"
+    DEFINES += ARCH_CPU_ARM64
+}
+
+contains(QMAKE_HOST.arch, mips64):{
+    DEFINES += _MIPS_ARCH_LOONGSON  #mips暂时默认为龙芯 调整最小页尺寸
+    QMAKE_CXXFLAGS += "-O3 -ftree-vectorize -march=loongson3a -mhard-float -mno-micromips -mno-mips16 -flax-vector-conversions -mloongson-ext2 -mloongson-mmi"
 }
 
 include(fx_freetype.pri)

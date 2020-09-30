@@ -23,6 +23,8 @@
 #endif
 
 #include "third_party/base/allocator/partition_allocator/page_allocator.h"
+#include "third_party/base/logging.h"
+#include <atomic>
 
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS MAP_ANON
