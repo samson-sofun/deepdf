@@ -2,7 +2,7 @@ TARGET = $$PWD/../lib/dpdf
 
 TEMPLATE = lib
 
-CONFIG += c++11
+CONFIG += c++14
 
 QT = core-private core gui
 
