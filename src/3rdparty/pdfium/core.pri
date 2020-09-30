@@ -126,7 +126,6 @@ HEADERS += \
     $$PWD/pdfium/core/fpdfapi/render/cpdf_textrenderer.h \
     $$PWD/pdfium/core/fpdfapi/render/cpdf_type3cache.h \
     $$PWD/pdfium/core/fpdfapi/render/cpdf_type3glyphmap.h \
-    #$$PWD/pdfium/core/fpdfapi/render/cpdf_windowsrenderdevice.h \
     $$PWD/pdfium/core/fpdfdoc/cba_fontmap.h \
     $$PWD/pdfium/core/fpdfdoc/cline.h \
     $$PWD/pdfium/core/fpdfdoc/cpdf_aaction.h \
@@ -239,7 +238,6 @@ HEADERS += \
     $$PWD/pdfium/core/fxcrt/cfx_bitstream.h \
     $$PWD/pdfium/core/fxcrt/cfx_datetime.h \
     $$PWD/pdfium/core/fxcrt/cfx_fileaccess_posix.h \
-    #$$PWD/pdfium/core/fxcrt/cfx_fileaccess_windows.h \
     $$PWD/pdfium/core/fxcrt/cfx_fixedbufgrow.h \
     $$PWD/pdfium/core/fxcrt/cfx_memorystream.h \
     $$PWD/pdfium/core/fxcrt/cfx_readonlymemorystream.h \
@@ -277,13 +275,6 @@ HEADERS += \
     $$PWD/pdfium/core/fxcrt/weak_ptr.h \
     $$PWD/pdfium/core/fxcrt/widestring.h \
     $$PWD/pdfium/core/fxge/agg/fx_agg_driver.h \
-#    $$PWD/pdfium/core/fxge/android/cfpf_skiadevicemodule.h \
-#    $$PWD/pdfium/core/fxge/android/cfpf_skiafont.h \
-#    $$PWD/pdfium/core/fxge/android/cfpf_skiafontmgr.h \
-#    $$PWD/pdfium/core/fxge/android/cfpf_skiapathfont.h \
-#    $$PWD/pdfium/core/fxge/android/cfx_androidfontinfo.h \
-#    $$PWD/pdfium/core/fxge/apple/fx_mac_impl.h \
-#    $$PWD/pdfium/core/fxge/apple/fx_quartz_device.h \
     $$PWD/pdfium/core/fxge/dib/cfx_bitmapcomposer.h \
     $$PWD/pdfium/core/fxge/dib/cfx_bitmapstorer.h \
     $$PWD/pdfium/core/fxge/dib/cfx_cmyk_to_srgb.h \
@@ -297,11 +288,6 @@ HEADERS += \
     $$PWD/pdfium/core/fxge/dib/cstretchengine.h \
     $$PWD/pdfium/core/fxge/dib/scanlinecomposer_iface.h \
     $$PWD/pdfium/core/fxge/fontdata/chromefontdata/chromefontdata.h \
-#    $$PWD/pdfium/core/fxge/skia/fx_skia_device.h \
-#    $$PWD/pdfium/core/fxge/win32/cfx_psrenderer.h \
-#    $$PWD/pdfium/core/fxge/win32/cfx_windowsdib.h \
-#    $$PWD/pdfium/core/fxge/win32/cpsoutput.h \
-#    $$PWD/pdfium/core/fxge/win32/win32_int.h \
     $$PWD/pdfium/core/fxge/cfx_cliprgn.h \
     $$PWD/pdfium/core/fxge/cfx_color.h \
     $$PWD/pdfium/core/fxge/cfx_defaultrenderdevice.h \
@@ -324,7 +310,6 @@ HEADERS += \
     $$PWD/pdfium/core/fxge/cfx_textrenderoptions.h \
     $$PWD/pdfium/core/fxge/cfx_unicodeencoding.h \
     $$PWD/pdfium/core/fxge/cfx_unicodeencodingex.h \
-    #$$PWD/pdfium/core/fxge/cfx_windowsrenderdevice.h \
     $$PWD/pdfium/core/fxge/fx_dib.h \
     $$PWD/pdfium/core/fxge/fx_font.h \
     $$PWD/pdfium/core/fxge/fx_freetype.h \
@@ -518,7 +503,6 @@ SOURCES += \
     $$PWD/pdfium/core/fpdfapi/render/cpdf_textrenderer.cpp \
     $$PWD/pdfium/core/fpdfapi/render/cpdf_type3cache.cpp \
     $$PWD/pdfium/core/fpdfapi/render/cpdf_type3glyphmap.cpp \
-    #$$PWD/pdfium/core/fpdfapi/render/cpdf_windowsrenderdevice.cpp \
     $$PWD/pdfium/core/fpdfdoc/cba_fontmap.cpp \
     $$PWD/pdfium/core/fpdfdoc/cline.cpp \
     $$PWD/pdfium/core/fpdfdoc/cpdf_aaction.cpp \
@@ -617,7 +601,6 @@ SOURCES += \
     $$PWD/pdfium/core/fxcrt/cfx_bitstream.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_datetime.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_fileaccess_posix.cpp \
-    #$$PWD/pdfium/core/fxcrt/cfx_fileaccess_windows.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_memorystream.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_readonlymemorystream.cpp \
     $$PWD/pdfium/core/fxcrt/cfx_seekablestreamproxy.cpp \
@@ -640,15 +623,6 @@ SOURCES += \
     $$PWD/pdfium/core/fxcrt/string_data_template.cpp \
     $$PWD/pdfium/core/fxcrt/widestring.cpp \
     $$PWD/pdfium/core/fxge/agg/fx_agg_driver.cpp \
-#    $$PWD/pdfium/core/fxge/android/cfpf_skiadevicemodule.cpp \
-#    $$PWD/pdfium/core/fxge/android/cfpf_skiafont.cpp \
-#    $$PWD/pdfium/core/fxge/android/cfpf_skiafontmgr.cpp \
-#    $$PWD/pdfium/core/fxge/android/cfpf_skiapathfont.cpp \
-#    $$PWD/pdfium/core/fxge/android/cfx_androidfontinfo.cpp \
-#    $$PWD/pdfium/core/fxge/android/fx_android_impl.cpp \
-#    $$PWD/pdfium/core/fxge/apple/fx_apple_platform.cpp \
-#    $$PWD/pdfium/core/fxge/apple/fx_mac_impl.cpp \
-#    $$PWD/pdfium/core/fxge/apple/fx_quartz_device.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_bitmapcomposer.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_bitmapstorer.cpp \
     $$PWD/pdfium/core/fxge/dib/cfx_cmyk_to_srgb.cpp \
@@ -678,13 +652,6 @@ SOURCES += \
     $$PWD/pdfium/core/fxge/fontdata/chromefontdata/FoxitSerifMM.cpp \
     $$PWD/pdfium/core/fxge/fontdata/chromefontdata/FoxitSymbol.cpp \
     $$PWD/pdfium/core/fxge/freetype/fx_freetype.cpp \
-#    $$PWD/pdfium/core/fxge/skia/fx_skia_device.cpp \
-#    $$PWD/pdfium/core/fxge/win32/cfx_psrenderer.cpp \
-#    $$PWD/pdfium/core/fxge/win32/cpsoutput.cpp \
-#    $$PWD/pdfium/core/fxge/win32/fx_win32_device.cpp \
-#    $$PWD/pdfium/core/fxge/win32/fx_win32_dib.cpp \
-#    $$PWD/pdfium/core/fxge/win32/fx_win32_gdipext.cpp \
-#    $$PWD/pdfium/core/fxge/win32/fx_win32_print.cpp \
     $$PWD/pdfium/core/fxge/cfx_cliprgn.cpp \
     $$PWD/pdfium/core/fxge/cfx_color.cpp \
     $$PWD/pdfium/core/fxge/cfx_drawutils.cpp \
