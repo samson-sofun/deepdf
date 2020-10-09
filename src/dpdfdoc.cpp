@@ -3,6 +3,7 @@
 
 #include "public/fpdfview.h"
 #include "public/fpdf_doc.h"
+#include "public/fpdf_save.h"
 
 #include "core/fpdfdoc/cpdf_bookmark.h"
 #include "core/fpdfdoc/cpdf_bookmarktree.h"
@@ -11,6 +12,8 @@
 
 #include <QFile>
 #include <QDebug>
+#include <iostream>
+#include <string.h>
 
 DPdfDoc::DPdfDoc(QString filename, QString password)
     : m_docHandler(nullptr)
@@ -30,7 +33,7 @@ DPdfDoc::~DPdfDoc()
 
 bool DPdfDoc::isValid() const
 {
-    return m_docHandler != NULL;
+    return m_docHandler != nullptr;
 }
 
 bool DPdfDoc::isEncrypted() const
@@ -60,6 +63,52 @@ DPdfDoc::Status DPdfDoc::tryLoadFile(const QString &filename, const QString &pas
     }
 
     return status;
+}
+
+int writeFile(struct FPDF_FILEWRITE_* pThis,const void* pData,unsigned long size)
+{
+    QFile file;
+
+    QString fileName = pThis->filename;
+
+    file.setFileName(fileName);
+
+    if(!file.open(QIODevice::Append |QIODevice::WriteOnly))
+        return 0;
+
+    file.write((char*)pData,size);
+
+    file.close();
+
+    return 1;
+}
+
+bool DPdfDoc::save()
+{
+    if(!QFile::remove(m_filename))
+        return false;
+
+    FPDF_FILEWRITE write;
+
+    strcpy(write.filename,m_filename.toStdString().c_str());
+
+    write.WriteBlock = writeFile;
+
+    return FPDF_SaveAsCopy((FPDF_DOCUMENT)m_docHandler, &write,FPDF_REMOVE_SECURITY);
+}
+
+bool DPdfDoc::saveAs(const QString &filename)
+{
+    if(!QFile::remove(m_filename))
+        return false;
+
+    FPDF_FILEWRITE *write = new FPDF_FILEWRITE;
+
+     strcpy(write->filename,filename.toStdString().c_str());
+
+    write->WriteBlock = writeFile;
+
+    return FPDF_SaveAsCopy((FPDF_DOCUMENT)m_docHandler, write,FPDF_REMOVE_SECURITY);
 }
 
 DPdfDoc::Status DPdfDoc::loadFile(const QString &filename, const QString &password)

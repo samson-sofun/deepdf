@@ -104,6 +104,19 @@ public:
      */
     static Status tryLoadFile(const QString &filename, const QString &password = QString());
 
+    /**
+     * @brief 保存到当前文件
+     * @return
+     */
+    bool save();
+
+    /**
+     * @brief 另存为到文件
+     * @param 文件名
+     * @return
+     */
+    bool saveAs(const QString &filename);
+
 private:
     /**
      * @brief 加载文档

@@ -106,7 +106,7 @@ public:
 
     /**
      * @brief 添加文字注释
-     * @param point 点击的位置
+     * @param point 点击的位置 基于原尺寸
      * @param text 注释内容
      * @return 添加失败返回nullptr
      */
@@ -116,14 +116,14 @@ public:
      * @brief 更新注释
      * @param dAnnot 给更新的注释指针
      * @param text 注释文字
-     * @param point 点击的位置 传空则不更新
+     * @param point 点击的位置 传空则不更新 基于原尺寸
      * @return
      */
     bool updateTextAnnot(DPdfAnnot *dAnnot, QString text, QPointF point = QPointF());
 
     /**
      * @brief 添加高亮注释
-     * @param list 高亮的区域 以文档大小为基础
+     * @param list 高亮的区域 基于原尺寸
      * @param text 注释内容
      * @param color 高亮颜色
      * @return 添加失败返回nullptr
