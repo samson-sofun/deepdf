@@ -25,17 +25,18 @@ public:
 private:
     FPDF_DOCUMENT m_doc = nullptr;
 
+    int m_index = -1;
+
+    double m_width = 0;
+
+    qreal m_height = 0;
+
     FPDF_PAGE m_page = nullptr;
 
     FPDF_TEXTPAGE m_textPage = nullptr;
 
-    int m_index = -1;
-
     QList<DPdfAnnot *> m_dAnnots;
 
-    double m_width = 0;
-
-    double m_height = 0;
 };
 
 DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
@@ -96,7 +97,7 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
             //获取位置
             FS_RECTF rectF;
             if (FPDFAnnot_GetRect(annot, &rectF)) {//注释图标为24x24
-                dAnnot->setPos(QPointF(rectF.left + 12, m_height - rectF.top + 12));
+                dAnnot->setPos(QPointF(static_cast<double>(rectF.left) + 12, m_height - static_cast<double>(rectF.top) + 12));
             }
 
             //获取文本
@@ -113,22 +114,22 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
             unsigned int b = 0;
             unsigned int a = 255;
             if (FPDFAnnot_GetColor(annot, FPDFANNOT_COLORTYPE_Color, &r, &g, &b, &a)) {
-                dAnnot->setColor(QColor(r, g, b, a));
+                dAnnot->setColor(QColor(static_cast<int>(r), static_cast<int>(g), static_cast<int>(b), static_cast<int>(a)));
             }
 
             //获取区域
-            int quadCount = FPDFAnnot_CountAttachmentPoints(annot);
+            ulong quadCount = FPDFAnnot_CountAttachmentPoints(annot);
             QList<QRectF> list;
-            for (int i = 0; i < quadCount; ++i) {
+            for (ulong i = 0; i < quadCount; ++i) {
                 FS_QUADPOINTSF quad;
                 if (!FPDFAnnot_GetAttachmentPoints(annot, i, &quad))
                     continue;
 
                 QRectF rectF;
-                rectF.setX(quad.x1);
-                rectF.setY(m_height - quad.y1);
-                rectF.setWidth(quad.x2 - quad.x1);
-                rectF.setHeight(quad.y1 - quad.y3);
+                rectF.setX(static_cast<double>(quad.x1));
+                rectF.setY(m_height - static_cast<double>(quad.y1));
+                rectF.setWidth(static_cast<double>(quad.x2 - quad.x1));
+                rectF.setHeight(static_cast<double>(quad.y1 - quad.y3));
 
                 list.append(rectF);
             }
@@ -203,7 +204,7 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
                                              FPDFBitmap_BGRA,
                                              image.scanLine(0), image.bytesPerLine());
 
-    if (bitmap == NULL) {
+    if (bitmap == nullptr) {
         return QImage();
     }
 
@@ -212,7 +213,7 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
                           image.width(), image.height(),
                           0, FPDF_ANNOT);
     FPDFBitmap_Destroy(bitmap);
-    bitmap = NULL;
+    bitmap = nullptr;
 
     for (int i = 0; i < image.height(); i++) {
         uchar *pixels = image.scanLine(i);

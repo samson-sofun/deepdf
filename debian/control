@@ -15,7 +15,7 @@ Package: deepin-libpdfium-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: qtbase5-dev, ${misc:Depends}, qtbase5-doc
+Depends: qtbase5-dev, ${misc:Depends}
 Description: PDF rendering library based on Qt and PDFium.
  .
  This package includes the development headers for the pdf rending library.
