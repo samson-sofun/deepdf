@@ -115,7 +115,7 @@ public:
      * @param 文件名
      * @return
      */
-    bool saveAs(const QString &filename);
+    bool saveAs(const QString &filePath);
 
 private:
     /**

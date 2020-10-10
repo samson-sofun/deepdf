@@ -1,5 +1,5 @@
-scpos5 (5.0.2.200902) unstable; urgency=medium
+deepin-pdfium (1.0.0) unstable; urgency=medium
 
   * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
 
- -- unknown <zs@zs-PC>  Wed, 16 Oct 2019 16:48:52 +0800
+ -- unknown <zhangsong@uniontech.com>  Wed, 09 Oct 2020 16:48:52 +0800

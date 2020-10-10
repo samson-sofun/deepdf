@@ -14,6 +14,7 @@
 #include <QDebug>
 #include <iostream>
 #include <string.h>
+#include <QTemporaryFile>
 
 DPdfDoc::DPdfDoc(QString filename, QString password)
     : m_docHandler(nullptr)
@@ -65,50 +66,48 @@ DPdfDoc::Status DPdfDoc::tryLoadFile(const QString &filename, const QString &pas
     return status;
 }
 
+static QFile saveWriter;
+
 int writeFile(struct FPDF_FILEWRITE_* pThis,const void* pData,unsigned long size)
 {
-    QFile file;
-
-    QString fileName = pThis->filename;
-
-    file.setFileName(fileName);
-
-    if(!file.open(QIODevice::Append |QIODevice::WriteOnly))
-        return 0;
-
-    file.write((char*)pData,size);
-
-    file.close();
-
-    return 1;
+    Q_UNUSED(pThis)
+    return 0 != saveWriter.write(static_cast<char*>(const_cast<void*>(pData)),static_cast<qint64>(size));
 }
 
 bool DPdfDoc::save()
 {
-    if(!QFile::remove(m_filename))
-        return false;
-
     FPDF_FILEWRITE write;
-
-    strcpy(write.filename,m_filename.toStdString().c_str());
 
     write.WriteBlock = writeFile;
 
-    return FPDF_SaveAsCopy((FPDF_DOCUMENT)m_docHandler, &write,FPDF_REMOVE_SECURITY);
-}
+    saveWriter.setFileName(m_filename);
 
-bool DPdfDoc::saveAs(const QString &filename)
-{
-    if(!QFile::remove(m_filename))
+    if(!saveWriter.open(QIODevice::ReadWrite))
         return false;
 
-    FPDF_FILEWRITE *write = new FPDF_FILEWRITE;
+    bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(m_docHandler), &write,FPDF_REMOVE_SECURITY);
 
-     strcpy(write->filename,filename.toStdString().c_str());
+    saveWriter.close();
 
-    write->WriteBlock = writeFile;
+    return result;
+}
 
-    return FPDF_SaveAsCopy((FPDF_DOCUMENT)m_docHandler, write,FPDF_REMOVE_SECURITY);
+bool DPdfDoc::saveAs(const QString &filePath)
+{
+    FPDF_FILEWRITE write;
+
+    write.WriteBlock = writeFile;
+
+    saveWriter.setFileName(filePath);
+
+    if(!saveWriter.open(QIODevice::ReadWrite))
+        return false;
+
+    bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(m_docHandler), &write,FPDF_INCREMENTAL);
+
+    saveWriter.close();
+
+    return result;
 }
 
 DPdfDoc::Status DPdfDoc::loadFile(const QString &filename, const QString &password)

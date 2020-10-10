@@ -22,7 +22,6 @@ typedef struct FPDF_FILEWRITE_ {
   //
   int version;
 
-  char filename[255];
   // Method: WriteBlock
   //          Output a block of data in your custom way.
   // Interface Version:

@@ -13,7 +13,15 @@ git clone <url>
 cd deepin-pdfium
 qmake
 make
-make install (might need sudo)
+sudo make install
+```
+###打包
+确保已经安装dh-make build-essential,使用如下命令:
+
+```sh
+git clone <url>
+cd deepin-pdfium
+sudo dpkg-buildpackage -b -tc -j16
 ```
 
 ### 使用
