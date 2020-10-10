@@ -9,7 +9,6 @@
 
 #include "core/fpdfapi/page/cpdf_page.h"
 #include "core/fpdftext/cpdf_textpage.h"
-#include "core/fpdfdoc/cpdf_pagelabel.h"
 #include "core/fpdfdoc/cpdf_linklist.h"
 
 #include <QDebug>
@@ -155,10 +154,6 @@ DPdfPagePrivate::~DPdfPagePrivate()
     if (m_textPage)
         FPDFText_ClosePage(m_textPage);
 
-    for (DPdfAnnot *dAnnot : m_dAnnots) {
-        delete dAnnot;
-    }
-
     if (m_page)
         FPDF_ClosePage(m_page);
 }
@@ -255,15 +250,6 @@ QString DPdfPage::text(int start, int charCount) const
 {
     auto text = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetPageText(start, charCount);
     return QString::fromWCharArray(text.c_str(), charCount);
-}
-
-QString DPdfPage::label() const
-{
-    CPDF_PageLabel label(reinterpret_cast<CPDF_Document *>(d_func()->m_doc));
-    const Optional<WideString> &str = label.GetLabel(pageIndex());
-    if (str.has_value())
-        return QString::fromWCharArray(str.value().c_str(), str.value().GetLength());
-    return QString();
 }
 
 QList<DPdfAnnot *> DPdfPage::annots()

@@ -9,6 +9,7 @@
 #include "core/fpdfdoc/cpdf_bookmarktree.h"
 #include "core/fpdfapi/parser/cpdf_document.h"
 #include "core/fpdfapi/parser/cpdf_dictionary.h"
+#include "core/fpdfdoc/cpdf_pagelabel.h"
 
 #include <QFile>
 #include <QDebug>
@@ -186,6 +187,15 @@ DPdfPage *DPdfDoc::page(int i)
     return m_pages[i];
 }
 
+QSizeF DPdfDoc::pageSizeF(int index) const
+{
+    double width = 0;
+    double height = 0;
+
+    FPDF_GetPageSizeByIndex((FPDF_DOCUMENT)m_docHandler, index, &width, &height);
+    return QSizeF(width, height);
+}
+
 void collectBookmarks(DPdfDoc::Outline &outline, const CPDF_BookmarkTree &tree, CPDF_Bookmark This)
 {
     DPdfDoc::Section section;
@@ -261,3 +271,11 @@ DPdfDoc::Properies DPdfDoc::proeries()
     return properies;
 }
 
+QString DPdfDoc::label(int index) const
+{
+    CPDF_PageLabel label(reinterpret_cast<CPDF_Document *>(m_docHandler));
+    const Optional<WideString> &str = label.GetLabel(index);
+    if (str.has_value())
+        return QString::fromWCharArray(str.value().c_str(), str.value().GetLength());
+    return QString();
+}
