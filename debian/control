@@ -2,7 +2,7 @@ Source: deepin-pdfium
 Section: libs
 Priority: optional
 Maintainer: deepin
-Build-Depends: debhelper (>= 11), qtbase5-dev,qt5-default, libjpeg-dev
+Build-Depends: debhelper (>= 11), g++,qtbase5-dev,qt5-default, libjpeg-dev
 Standards-Version: 1.0.0
 Homepage: http://www.uniontech.com
 

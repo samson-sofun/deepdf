@@ -22,11 +22,10 @@ SOURCES += \
     $$PWD/dpdfpage.cpp \
     $$PWD/dpdfannot.cpp
 
-target.path  = /usr/bin
+target.path  = /usr/lib
 
-headers.files = $$HEADERS
+header_files.path = /usr/include
 
-includes.path = /usr/include
-includes.files = $$public_headers
+header_files.files = $$public_headers
 
-INSTALLS += target includes
+INSTALLS += target header_files
