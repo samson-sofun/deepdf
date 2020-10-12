@@ -285,6 +285,8 @@ DPdfPage::Link DPdfPage::getLinkAtPoint(qreal x, qreal y)
     if (cAction.GetType() == CPDF_Action::URI) {
         const ByteString &bUrl = cAction.GetURI(pDoc);
         link.urlpath = QString::fromUtf8(bUrl.c_str(), bUrl.GetLength());
+        if (!link.urlpath.contains("http://") && !link.urlpath.contains("https://"))
+            link.urlpath.prepend("http://");
     } else {
         const WideString &wFilepath = cAction.GetFilePath();
         link.urlpath = QString::fromWCharArray(wFilepath.c_str(), wFilepath.GetLength());
