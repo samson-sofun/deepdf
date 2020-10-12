@@ -7,6 +7,7 @@
 #include <QMap>
 #include <QVector>
 #include <QPointF>
+#include <QVariant>
 
 class DPdfPage;
 class DPdfDocHandler;
