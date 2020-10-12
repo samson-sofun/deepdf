@@ -26,7 +26,7 @@ public:
 
         bool isValid()
         {
-            return nIndex >= 0;
+            return nIndex >= 0 || !urlpath.isEmpty();
         }
     };
 
