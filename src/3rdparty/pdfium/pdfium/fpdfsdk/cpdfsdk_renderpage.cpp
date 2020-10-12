@@ -24,7 +24,6 @@ void RenderPageImpl(CPDF_PageRenderContext *pContext,
                     CPDF_Page *pPage,
                     const CFX_Matrix &matrix,
                     const FX_RECT &clipping_rect,
-                    const FX_RECT &src_rect,
                     int flags,
                     const FPDF_COLORSCHEME *color_scheme,
                     bool need_to_restore,
@@ -58,7 +57,7 @@ void RenderPageImpl(CPDF_PageRenderContext *pContext,
         pdfium::MakeRetain<CPDF_OCContext>(pPage->GetDocument(), usage));
 
     pContext->m_pDevice->SaveState();
-    pContext->m_pDevice->SetBaseClip(src_rect);
+    pContext->m_pDevice->SetBaseClip(clipping_rect);
 
     pContext->m_pDevice->SetClip_Rect(clipping_rect);
     pContext->m_pContext = std::make_unique<CPDF_RenderContext>(
@@ -94,7 +93,7 @@ void CPDFSDK_RenderPage(CPDF_PageRenderContext *pContext,
                         int flags,
                         const FPDF_COLORSCHEME *color_scheme)
 {
-    RenderPageImpl(pContext, pPage, matrix, clipping_rect, clipping_rect, flags, color_scheme,
+    RenderPageImpl(pContext, pPage, matrix, clipping_rect, flags, color_scheme,
                    /*need_to_restore=*/true, /*pause=*/nullptr);
 }
 
@@ -112,8 +111,7 @@ void CPDFSDK_RenderPageWithContext(CPDF_PageRenderContext *pContext,
                                    bool need_to_restore,
                                    CPDFSDK_PauseAdapter *pause)
 {
-    const FX_RECT rect(start_x, start_y, start_x + size_x, start_y + size_y);
-    const FX_RECT srcrect(0, 0, src_size_w, src_size_h);
-    RenderPageImpl(pContext, pPage, pPage->GetDisplayMatrix(srcrect, rotate), rect, srcrect,
+    const FX_RECT rect(0, 0, size_x, size_y);
+    RenderPageImpl(pContext, pPage, pPage->GetDisplayMatrix(FX_RECT(-start_x, -start_y,  src_size_w - start_x, src_size_h - start_y), rotate), rect,
                    flags, color_scheme, need_to_restore, pause);
 }

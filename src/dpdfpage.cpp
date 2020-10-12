@@ -189,7 +189,7 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
     if (nullptr == d_func()->m_doc)
         return QImage();
 
-    QImage image(xscale * this->width(), yscale * this->height(), QImage::Format_RGBA8888);
+    QImage image(xscale * width, yscale * height, QImage::Format_RGBA8888);
 
     if (image.isNull())
         return QImage();
@@ -204,8 +204,8 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
     }
 
     FPDF_RenderPageBitmap(bitmap, d_func()->m_page,
-                          x, y, width, height,
-                          image.width(), image.height(),
+                          xscale * x, yscale * y, image.width(), image.height(),
+                          xscale * this->width(), yscale * this->height(),
                           0, FPDF_ANNOT);
     FPDFBitmap_Destroy(bitmap);
     bitmap = nullptr;
