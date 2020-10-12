@@ -12,7 +12,6 @@
 #include "core/fpdfdoc/cpdf_pagelabel.h"
 
 #include <QFile>
-#include <QDebug>
 #include <iostream>
 #include <string.h>
 #include <QTemporaryFile>
@@ -69,10 +68,10 @@ DPdfDoc::Status DPdfDoc::tryLoadFile(const QString &filename, const QString &pas
 
 static QFile saveWriter;
 
-int writeFile(struct FPDF_FILEWRITE_* pThis,const void* pData,unsigned long size)
+int writeFile(struct FPDF_FILEWRITE_* pThis, const void *pData, unsigned long size)
 {
     Q_UNUSED(pThis)
-    return 0 != saveWriter.write(static_cast<char*>(const_cast<void*>(pData)),static_cast<qint64>(size));
+    return 0 != saveWriter.write(static_cast<char *>(const_cast<void *>(pData)), static_cast<qint64>(size));
 }
 
 bool DPdfDoc::save()
@@ -83,10 +82,10 @@ bool DPdfDoc::save()
 
     saveWriter.setFileName(m_filename);
 
-    if(!saveWriter.open(QIODevice::ReadWrite))
+    if (!saveWriter.open(QIODevice::ReadWrite))
         return false;
 
-    bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(m_docHandler), &write,FPDF_REMOVE_SECURITY);
+    bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(m_docHandler), &write, FPDF_REMOVE_SECURITY);
 
     saveWriter.close();
 
@@ -101,10 +100,10 @@ bool DPdfDoc::saveAs(const QString &filePath)
 
     saveWriter.setFileName(filePath);
 
-    if(!saveWriter.open(QIODevice::ReadWrite))
+    if (!saveWriter.open(QIODevice::ReadWrite))
         return false;
 
-    bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(m_docHandler), &write,FPDF_INCREMENTAL);
+    bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(m_docHandler), &write, FPDF_INCREMENTAL);
 
     saveWriter.close();
 
@@ -216,7 +215,6 @@ void collectBookmarks(DPdfDoc::Outline &outline, const CPDF_BookmarkTree &tree, 
         collectBookmarks(section.children, tree, Child);
     }
     outline << section;
-    qDebug() << "outline  = " << section.title << section.nIndex << section.offsetPointF;
 
     const CPDF_Bookmark &SibChild = tree.GetNextSibling(&This);
     if (SibChild.GetDict() != NULL) {
@@ -267,7 +265,6 @@ DPdfDoc::Properies DPdfDoc::proeries()
         properies.insert("Producer", QString::fromWCharArray(Producer.c_str(), Producer.GetLength()));
     }
 
-    qDebug() << "properies = " << properies;
     return properies;
 }
 
