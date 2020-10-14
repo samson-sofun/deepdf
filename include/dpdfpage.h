@@ -104,7 +104,7 @@ public:
      * @param text 注释内容
      * @return 添加失败返回nullptr
      */
-    DPdfAnnot *createTextAnnot(QPoint point, QString text);
+    DPdfAnnot *createTextAnnot(QPointF point, QString text);
 
     /**
      * @brief 更新注释

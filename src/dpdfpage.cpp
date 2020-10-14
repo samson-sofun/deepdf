@@ -140,11 +140,7 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
             dAnnot->m_text = QString::fromUtf16(buffer);
 
             m_dAnnots.append(dAnnot);
-        } else {//其他类型 用于占位 对应索引
-            DPdfUnknownAnnot *dAnnot = new DPdfUnknownAnnot;
-            m_dAnnots.append(dAnnot);
         }
-
         FPDFPage_CloseAnnot(annot);
     }
 }
@@ -294,17 +290,17 @@ DPdfPage::Link DPdfPage::getLinkAtPoint(qreal x, qreal y)
     return link;
 }
 
-DPdfAnnot *DPdfPage::createTextAnnot(QPoint point, QString text)
+DPdfAnnot *DPdfPage::createTextAnnot(QPointF point, QString text)
 {
     FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_TEXT;
 
     FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(d_func()->m_page, subType);
 
     FS_RECTF rectF;
-    rectF.left = point.x() - 10;
-    rectF.top = height() - point.y() - 10;
-    rectF.right = point.x() + 1 - 10;
-    rectF.bottom = height() - point.y() - 1 - 10;
+    rectF.left = point.x() - 12;
+    rectF.top = height() - point.y() + 12;
+    rectF.right = point.x() + 12;
+    rectF.bottom = rectF.top - 24;
 
     if (!FPDFAnnot_SetRect(annot, &rectF)) {
         FPDFPage_CloseAnnot(annot);
@@ -320,7 +316,7 @@ DPdfAnnot *DPdfPage::createTextAnnot(QPoint point, QString text)
 
     DPdfTextAnnot *dAnnot = new DPdfTextAnnot;
 
-    dAnnot->setPos(QPointF(point.x() - 12, point.y() - 12));
+    dAnnot->setPos(point);
 
     dAnnot->setText(text);
 
@@ -351,9 +347,9 @@ bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text, QPointF point)
     if (!point.isNull()) {
         FS_RECTF rectF;
         rectF.left = point.x() - 12;
-        rectF.top = height() - point.y() - 12;
-        rectF.right = rectF.left + 12;
-        rectF.bottom = rectF.top - 12;
+        rectF.top = height() - point.y() + 12;
+        rectF.right = point.x() + 12;
+        rectF.bottom = rectF.top - 24;
 
         if (!FPDFAnnot_SetRect(annot, &rectF)) {
             FPDFPage_CloseAnnot(annot);
