@@ -69,7 +69,15 @@ public:
      * @param start
      * @return
      */
-    QVector<QRectF> getTextRect(int start, int charCount = 1) const;
+    bool getTextRect(int start, QRectF &textrect) const;
+
+    /**
+     * @brief 获取多个字符文本范围
+     * @param start
+     * @param charCount
+     * @return
+     */
+    QVector<QRectF> getTextRects(int start, int charCount) const;
 
     /**
      * @brief 根据范围获取文本
@@ -122,7 +130,7 @@ public:
      * @param color 高亮颜色
      * @return 添加失败返回nullptr
      */
-    DPdfAnnot *createHightLightAnnot(QList<QRectF> list, QString text, QColor color = QColor());
+    DPdfAnnot *createHightLightAnnot(const QList<QRectF> &list, QString text, QColor color = QColor());
 
     /**
      * @brief 更新高亮注释

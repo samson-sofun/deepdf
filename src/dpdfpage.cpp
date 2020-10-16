@@ -245,15 +245,31 @@ int DPdfPage::countChars() const
     return FPDFText_CountChars(d_func()->m_textPage);
 }
 
-QVector<QRectF> DPdfPage::getTextRect(int start, int charCount) const
+QVector<QRectF> DPdfPage::getTextRects(int start, int charCount) const
 {
     QVector<QRectF> result;
-    std::vector<CFX_FloatRect> pdfiumRects = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetRectArray(start, charCount);
+    const std::vector<CFX_FloatRect> &pdfiumRects = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetRectArray(start, charCount);
     result.reserve(pdfiumRects.size());
-    for (CFX_FloatRect &rect : pdfiumRects) {
+    for (const CFX_FloatRect &rect : pdfiumRects) {
         result.push_back({rect.left, height() - rect.top, rect.right - rect.left, rect.top - rect.bottom});
     }
     return result;
+}
+
+bool DPdfPage::getTextRect(int start, QRectF &textrect) const
+{
+    if (FPDFText_GetUnicode(d_func()->m_textPage, start) == L' ') {
+        textrect = QRectF();
+        return true;
+    }
+
+    FS_RECTF rect;
+    if (FPDFText_GetLooseCharBox(d_func()->m_textPage, start, &rect)) {
+        textrect = QRectF(rect.left, height() - rect.top, rect.right - rect.left, rect.top - rect.bottom);
+        return true;
+    }
+
+    return  false;
 }
 
 QString DPdfPage::text(const QRectF &rect) const
@@ -268,7 +284,7 @@ QString DPdfPage::text(const QRectF &rect) const
 QString DPdfPage::text(int start, int charCount) const
 {
     auto text = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetPageText(start, charCount);
-    return QString::fromWCharArray(text.c_str(), charCount);
+    return QString::fromWCharArray(text.c_str(), text.GetLength());
 }
 
 QList<DPdfAnnot *> DPdfPage::annots()
@@ -389,7 +405,7 @@ bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text, QPointF point)
     return true;
 }
 
-DPdfAnnot *DPdfPage::createHightLightAnnot(QList<QRectF> list, QString text, QColor color)
+DPdfAnnot *DPdfPage::createHightLightAnnot(const QList<QRectF> &list, QString text, QColor color)
 {
     FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_HIGHLIGHT;
 
@@ -400,7 +416,7 @@ DPdfAnnot *DPdfPage::createHightLightAnnot(QList<QRectF> list, QString text, QCo
         return nullptr;
     }
 
-    for (QRectF rect : list) {
+    for (const QRectF &rect : list) {
         FS_QUADPOINTSF quad;
         quad.x1 = rect.x();
         quad.y1 = d_func()->m_height - rect.y();
@@ -504,7 +520,7 @@ QVector<QRectF> DPdfPage::search(const QString &text, bool matchCase, bool whole
         while (FPDFText_FindNext(schandle)) {
             int curSchIndex = FPDFText_GetSchResultIndex(schandle);
             if (curSchIndex >= 0) {
-                const QVector<QRectF> &textrectfs = getTextRect(curSchIndex, text.length());
+                const QVector<QRectF> &textrectfs = getTextRects(curSchIndex, text.length());
                 rectfs << textrectfs;
             }
         };
