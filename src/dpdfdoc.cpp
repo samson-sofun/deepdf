@@ -103,7 +103,7 @@ bool DPdfDoc::saveAs(const QString &filePath)
     if (!saveWriter.open(QIODevice::ReadWrite))
         return false;
 
-    bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(m_docHandler), &write, FPDF_INCREMENTAL);
+    bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(m_docHandler), &write, FPDF_REMOVE_SECURITY);
 
     saveWriter.close();
 
@@ -208,16 +208,16 @@ void collectBookmarks(DPdfDoc::Outline &outline, const CPDF_BookmarkTree &tree, 
     const CPDF_Dest &dest = This.GetDest(tree.GetDocument()).GetArray() ? This.GetDest(tree.GetDocument()) : This.GetAction().GetDest(tree.GetDocument());
     section.nIndex = dest.GetDestPageIndex(tree.GetDocument());
     dest.GetXYZ(&hasx, &hasy, &haszoom, &x, &y, &z);
-    section.offsetPointF = QPointF(x, y);
+    section.offsetPointF = QPointF(static_cast<qreal>(x),static_cast<qreal>(y));
 
     const CPDF_Bookmark &Child = tree.GetFirstChild(&This);
-    if (Child.GetDict() != NULL) {
+    if (Child.GetDict() != nullptr) {
         collectBookmarks(section.children, tree, Child);
     }
     outline << section;
 
     const CPDF_Bookmark &SibChild = tree.GetNextSibling(&This);
-    if (SibChild.GetDict() != NULL) {
+    if (SibChild.GetDict() != nullptr) {
         collectBookmarks(outline, tree, SibChild);
     }
 }
@@ -228,7 +228,7 @@ DPdfDoc::Outline DPdfDoc::outline()
     CPDF_BookmarkTree tree(reinterpret_cast<CPDF_Document *>(m_docHandler));
     CPDF_Bookmark cBookmark;
     const CPDF_Bookmark &firstRootChild = tree.GetFirstChild(&cBookmark);
-    if (firstRootChild.GetDict() != NULL)
+    if (firstRootChild.GetDict() != nullptr)
         collectBookmarks(outline, tree, firstRootChild);
 
     return outline;
