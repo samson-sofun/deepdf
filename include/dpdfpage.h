@@ -52,11 +52,18 @@ public:
     int pageIndex() const;
 
     /**
-     * @brief 获取范围内图片
+     * @brief 获取图片
+     * @param scale 缩放因子
+     * @return
+     */
+    QImage image(qreal scale);
+
+    /**
+     * @brief 获取图片一部分
      * @param scale
      * @return
      */
-    QImage image(qreal xscale = 1, qreal yscale = 1, qreal x = 0, qreal y = 0, qreal width = 0, qreal height = 0);
+    QImage image(qreal xscale, qreal yscale, qreal x = 0, qreal y = 0, qreal width = 0, qreal height = 0);
 
     /**
      * @brief 字符数

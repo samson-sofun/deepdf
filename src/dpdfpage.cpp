@@ -203,6 +203,42 @@ int DPdfPage::pageIndex() const
     return d_func()->m_index;
 }
 
+QImage DPdfPage::image(qreal scale)
+{
+    if (nullptr == d_func()->m_doc)
+        return QImage();
+
+    int scaleWidth = static_cast<int>(width()*scale) ;
+    int scaleHeight = static_cast<int>(height()*scale);
+
+    QImage image(scaleWidth, scaleHeight, QImage::Format_RGBA8888);
+
+    image.fill(0xFFFFFFFF);
+
+    if (image.isNull())
+        return QImage();
+
+    FPDF_BITMAP bitmap = FPDFBitmap_CreateEx(image.width(), image.height(),FPDFBitmap_BGRA,image.scanLine(0), image.bytesPerLine());
+
+    if (bitmap == nullptr) {
+        return QImage();
+    }
+
+    FPDF_RenderPageBitmap(bitmap, d_func()->m_page,0, 0, scaleWidth, scaleHeight,scaleWidth, scaleHeight,0, FPDF_ANNOT);
+
+    FPDFBitmap_Destroy(bitmap);
+
+    for (int i = 0; i < image.height(); i++) {
+        uchar *pixels = image.scanLine(i);
+        for (int j = 0; j < image.width(); j++) {
+            qSwap(pixels[0], pixels[2]);
+            pixels += 4;
+        }
+    }
+
+    return image;
+}
+
 QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width, qreal height)
 {
     if (nullptr == d_func()->m_doc)
@@ -212,6 +248,7 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
 
     if (image.isNull())
         return QImage();
+
     image.fill(0xFFFFFFFF);
 
     FPDF_BITMAP bitmap = FPDFBitmap_CreateEx(image.width(), image.height(),
