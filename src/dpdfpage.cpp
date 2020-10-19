@@ -174,10 +174,6 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
 DPdfPagePrivate::~DPdfPagePrivate()
 {
-    for (DPdfAnnot *dAnnot : m_dAnnots) {
-        delete dAnnot;
-    }
-
     if (m_textPage)
         FPDFText_ClosePage(m_textPage);
 
