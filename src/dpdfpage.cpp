@@ -163,6 +163,10 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
             dAnnot->m_text = QString::fromUtf16(buffer);
 
             m_dAnnots.append(dAnnot);
+        } else {
+            //其他类型 用于占位 对应索引
+            DPdfUnknownAnnot *dAnnot = new DPdfUnknownAnnot;
+            m_dAnnots.append(dAnnot);
         }
         FPDFPage_CloseAnnot(annot);
     }
@@ -170,6 +174,10 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
 DPdfPagePrivate::~DPdfPagePrivate()
 {
+    for (DPdfAnnot *dAnnot : m_dAnnots) {
+        delete dAnnot;
+    }
+
     if (m_textPage)
         FPDFText_ClosePage(m_textPage);
 
@@ -208,8 +216,8 @@ QImage DPdfPage::image(qreal scale)
     if (nullptr == d_func()->m_doc)
         return QImage();
 
-    int scaleWidth = static_cast<int>(width()*scale) ;
-    int scaleHeight = static_cast<int>(height()*scale);
+    int scaleWidth = static_cast<int>(width() * scale) ;
+    int scaleHeight = static_cast<int>(height() * scale);
 
     QImage image(scaleWidth, scaleHeight, QImage::Format_RGBA8888);
 
@@ -218,13 +226,13 @@ QImage DPdfPage::image(qreal scale)
     if (image.isNull())
         return QImage();
 
-    FPDF_BITMAP bitmap = FPDFBitmap_CreateEx(image.width(), image.height(),FPDFBitmap_BGRA,image.scanLine(0), image.bytesPerLine());
+    FPDF_BITMAP bitmap = FPDFBitmap_CreateEx(image.width(), image.height(), FPDFBitmap_BGRA, image.scanLine(0), image.bytesPerLine());
 
     if (bitmap == nullptr) {
         return QImage();
     }
 
-    FPDF_RenderPageBitmap(bitmap, d_func()->m_page,0, 0, scaleWidth, scaleHeight,scaleWidth, scaleHeight,0, FPDF_ANNOT);
+    FPDF_RenderPageBitmap(bitmap, d_func()->m_page, 0, 0, scaleWidth, scaleHeight, scaleWidth, scaleHeight, 0, FPDF_ANNOT);
 
     FPDFBitmap_Destroy(bitmap);
 
@@ -532,7 +540,7 @@ bool DPdfPage::removeAnnot(DPdfAnnot *dAnnot)
     if (!FPDFPage_RemoveAnnot(d_func()->m_page, index))
         return false;
 
-    d_func()->m_dAnnots.removeOne(dAnnot);
+    d_func()->m_dAnnots.removeAll(dAnnot);
 
     emit annotRemoved(dAnnot);
 
