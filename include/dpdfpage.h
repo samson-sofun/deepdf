@@ -102,12 +102,6 @@ public:
     QString text(int start, int charCount = 1) const;
 
     /**
-     * @brief 获取当前支持操作的所有注释
-     * @return 注释列表，只会列出已支持的注释
-     */
-    QList<DPdfAnnot *> annots();
-
-    /**
      * @brief 获取位置所在Link
      * @return
      */
@@ -163,6 +157,12 @@ public:
      * @return
      */
     QVector<QRectF> search(const QString &text, bool matchCase = false, bool wholeWords = false) const;
+
+    /**
+     * @brief 获取当前支持操作的所有注释
+     * @return 注释列表，只会列出已支持的注释
+     */
+    QList<DPdfAnnot *> annots();
 
 signals:
     /**
