@@ -21,6 +21,11 @@ public:
 
     ~DPdfPagePrivate();
 
+public:
+    void loadPage();
+
+    void loadTextPage();
+
 private:
     FPDF_DOCUMENT m_doc = nullptr;
 
@@ -37,7 +42,6 @@ private:
     FPDF_TEXTPAGE m_textPage = nullptr;
 
     QList<DPdfAnnot *> m_dAnnots;
-
 };
 
 DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
@@ -46,13 +50,7 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
     m_index = index;
 
-    m_page = FPDF_LoadPage(m_doc, m_index);
-
-    m_width = FPDF_GetPageWidth(m_page);
-
-    m_height = FPDF_GetPageHeight(m_page);
-
-    m_textPage = FPDFText_LoadPage(m_page);
+    FPDF_GetPageSizeByIndex(m_doc, index, &m_width, &m_height);
 }
 
 DPdfPagePrivate::~DPdfPagePrivate()
@@ -62,6 +60,20 @@ DPdfPagePrivate::~DPdfPagePrivate()
 
     if (m_page)
         FPDF_ClosePage(m_page);
+}
+
+void DPdfPagePrivate::loadPage()
+{
+    if (nullptr == m_page)
+        m_page = FPDF_LoadPage(m_doc, m_index);
+}
+
+void DPdfPagePrivate::loadTextPage()
+{
+    loadPage();
+
+    if (nullptr == m_textPage)
+        m_textPage = FPDFText_LoadPage(m_page);
 }
 
 DPdfPage::DPdfPage(DPdfDocHandler *handler, int pageIndex)
@@ -77,12 +89,12 @@ DPdfPage::~DPdfPage()
 
 qreal DPdfPage::width() const
 {
-    return FPDF_GetPageWidth(d_func()->m_page);
+    return d_func()->m_width;
 }
 
 qreal DPdfPage::height() const
 {
-    return FPDF_GetPageHeight(d_func()->m_page);
+    return d_func()->m_height;
 }
 
 int DPdfPage::pageIndex() const
@@ -94,6 +106,8 @@ QImage DPdfPage::image(qreal scale)
 {
     if (nullptr == d_func()->m_doc)
         return QImage();
+
+    d_func()->loadPage();
 
     int scaleWidth = static_cast<int>(width() * scale) ;
     int scaleHeight = static_cast<int>(height() * scale);
@@ -131,6 +145,8 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
     if (nullptr == d_func()->m_doc)
         return QImage();
 
+    d_func()->loadPage();
+
     QImage image(width, height, QImage::Format_RGBA8888);
 
     if (image.isNull())
@@ -164,13 +180,17 @@ QImage DPdfPage::image(qreal xscale, qreal yscale, qreal x, qreal y, qreal width
     return image;
 }
 
-int DPdfPage::countChars() const
+int DPdfPage::countChars()
 {
+    d_func()->loadTextPage();
+
     return FPDFText_CountChars(d_func()->m_textPage);
 }
 
-QVector<QRectF> DPdfPage::getTextRects(int start, int charCount) const
+QVector<QRectF> DPdfPage::getTextRects(int start, int charCount)
 {
+    d_func()->loadTextPage();
+
     QVector<QRectF> result;
     const std::vector<CFX_FloatRect> &pdfiumRects = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetRectArray(start, charCount);
     result.reserve(pdfiumRects.size());
@@ -180,8 +200,10 @@ QVector<QRectF> DPdfPage::getTextRects(int start, int charCount) const
     return result;
 }
 
-bool DPdfPage::getTextRect(int start, QRectF &textrect) const
+bool DPdfPage::getTextRect(int start, QRectF &textrect)
 {
+    d_func()->loadTextPage();
+
     if (FPDFText_GetUnicode(d_func()->m_textPage, start) == L' ') {
         textrect = QRectF();
         return true;
@@ -196,8 +218,10 @@ bool DPdfPage::getTextRect(int start, QRectF &textrect) const
     return  false;
 }
 
-QString DPdfPage::text(const QRectF &rect) const
+QString DPdfPage::text(const QRectF &rect)
 {
+    d_func()->loadTextPage();
+
     qreal newBottom = height() - rect.bottom();
     qreal newTop = height() - rect.top();
     CFX_FloatRect fxRect(rect.left(), std::min(newBottom, newTop), rect.right(), std::max(newBottom, newTop));
@@ -205,14 +229,18 @@ QString DPdfPage::text(const QRectF &rect) const
     return QString::fromWCharArray(text.c_str(), text.GetLength());
 }
 
-QString DPdfPage::text(int start, int charCount) const
+QString DPdfPage::text(int start, int charCount)
 {
+    d_func()->loadTextPage();
+
     auto text = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetPageText(start, charCount);
     return QString::fromWCharArray(text.c_str(), text.GetLength());
 }
 
 DPdfPage::Link DPdfPage::getLinkAtPoint(qreal x, qreal y)
 {
+    d_func()->loadPage();
+
     Link link;
     const FPDF_LINK &flink = FPDFLink_GetLinkAtPoint(d_func()->m_page, x, height() - y);
     CPDF_Link cLink(reinterpret_cast<CPDF_Dictionary *>(flink));
@@ -244,6 +272,8 @@ DPdfPage::Link DPdfPage::getLinkAtPoint(qreal x, qreal y)
 
 DPdfAnnot *DPdfPage::createTextAnnot(QPointF point, QString text)
 {
+    d_func()->loadPage();
+
     FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_TEXT;
 
     FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(d_func()->m_page, subType);
@@ -281,6 +311,8 @@ DPdfAnnot *DPdfPage::createTextAnnot(QPointF point, QString text)
 
 bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text, QPointF point)
 {
+    d_func()->loadPage();
+
     DPdfTextAnnot *textAnnot = static_cast<DPdfTextAnnot *>(dAnnot);
 
     if (nullptr == textAnnot)
@@ -320,6 +352,8 @@ bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text, QPointF point)
 
 DPdfAnnot *DPdfPage::createHightLightAnnot(const QList<QRectF> &list, QString text, QColor color)
 {
+    d_func()->loadPage();
+
     FPDF_ANNOTATION_SUBTYPE subType = FPDF_ANNOT_HIGHLIGHT;
 
     FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(d_func()->m_page, subType);
@@ -368,6 +402,8 @@ DPdfAnnot *DPdfPage::createHightLightAnnot(const QList<QRectF> &list, QString te
 
 bool DPdfPage::updateHightLightAnnot(DPdfAnnot *dAnnot, QColor color, QString text)
 {
+    d_func()->loadPage();
+
     DPdfHightLightAnnot *hightLightAnnot = static_cast<DPdfHightLightAnnot *>(dAnnot);
 
     if (nullptr == hightLightAnnot)
@@ -400,6 +436,8 @@ bool DPdfPage::updateHightLightAnnot(DPdfAnnot *dAnnot, QColor color, QString te
 
 bool DPdfPage::removeAnnot(DPdfAnnot *dAnnot)
 {
+    d_func()->loadPage();
+
     int index = d_func()->m_dAnnots.indexOf(dAnnot);
 
     if (index < 0)
@@ -417,8 +455,10 @@ bool DPdfPage::removeAnnot(DPdfAnnot *dAnnot)
     return true;
 }
 
-QVector<QRectF> DPdfPage::search(const QString &text, bool matchCase, bool wholeWords) const
+QVector<QRectF> DPdfPage::search(const QString &text, bool matchCase, bool wholeWords)
 {
+    d_func()->loadTextPage();
+
     QVector<QRectF> rectfs;
     int flags = 0x00000000;
 
@@ -494,7 +534,7 @@ QList<DPdfAnnot *> DPdfPage::annots()
 
             //获取位置
             FS_RECTF rectF;
-            if (FPDFAnnot_GetRect(annot, &rectF)) {//注释图标为24x24
+            if (FPDFAnnot_GetRect(annot, &rectF)) {//注释图标为20x20
                 QRectF annorectF(rectF.left, pageHeight - rectF.top, 20, 20);
                 dAnnot->setRectF(annorectF);
 
@@ -569,5 +609,7 @@ QList<DPdfAnnot *> DPdfPage::annots()
         }
         FPDFPage_CloseAnnot(annot);
     }
+
+    FPDF_ClosePage(page);
     return d_func()->m_dAnnots;
 }

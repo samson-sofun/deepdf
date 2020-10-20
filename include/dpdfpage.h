@@ -69,14 +69,14 @@ public:
      * @brief 字符数
      * @return
      */
-    int countChars() const;
+    int countChars();
 
     /**
      * @brief 根据索引获取文本范围
      * @param start
      * @return
      */
-    bool getTextRect(int start, QRectF &textrect) const;
+    bool getTextRect(int start, QRectF &textrect);
 
     /**
      * @brief 获取多个字符文本范围
@@ -84,14 +84,14 @@ public:
      * @param charCount
      * @return
      */
-    QVector<QRectF> getTextRects(int start, int charCount) const;
+    QVector<QRectF> getTextRects(int start, int charCount);
 
     /**
      * @brief 根据范围获取文本
      * @param rect
      * @return
      */
-    QString text(const QRectF &rect) const;
+    QString text(const QRectF &rect);
 
     /**
      * @brief 根据索引获取文本
@@ -99,7 +99,7 @@ public:
      * @param charCount
      * @return
      */
-    QString text(int start, int charCount = 1) const;
+    QString text(int start, int charCount = 1);
 
     /**
      * @brief 获取位置所在Link
@@ -156,7 +156,7 @@ public:
      * @param wholeWords 整个单词
      * @return
      */
-    QVector<QRectF> search(const QString &text, bool matchCase = false, bool wholeWords = false) const;
+    QVector<QRectF> search(const QString &text, bool matchCase = false, bool wholeWords = false);
 
     /**
      * @brief 获取当前支持操作的所有注释
