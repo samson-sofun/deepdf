@@ -710,7 +710,7 @@ QList<DPdfAnnot *> DPdfPage::links()
     QList<DPdfAnnot *> links;
 
     foreach (DPdfAnnot *annot, d_func()->m_dAnnots) {
-        if (annot->type() == DPdfAnnot::AText || annot->type() == DPdfAnnot::AHighlight) {
+        if (annot->type() == DPdfAnnot::ALink) {
             links.append(annot);
             continue;
         }
