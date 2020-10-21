@@ -32,8 +32,6 @@ private:
 private:
     FPDF_DOCUMENT m_doc = nullptr;
 
-    int m_annotInit = false;
-
     int m_index = -1;
 
     double m_width = 0;
@@ -54,6 +52,8 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
     m_index = index;
 
     FPDF_GetPageSizeByIndex(m_doc, index, &m_width, &m_height);
+
+    loadAnnots();
 }
 
 DPdfPagePrivate::~DPdfPagePrivate()
@@ -83,9 +83,6 @@ void DPdfPagePrivate::loadTextPage()
 
 void DPdfPagePrivate::loadAnnots()
 {
-    if (m_annotInit)
-        return;
-
     //使用临时page，不完全加载,防止刚开始消耗时间过长
     FPDF_PAGE page = FPDF_LoadNoParsePage(m_doc, m_index);
 
@@ -270,8 +267,6 @@ void DPdfPagePrivate::loadAnnots()
     }
 
     FPDF_ClosePage(page);
-
-    m_annotInit = true;
 }
 
 DPdfPage::DPdfPage(DPdfDocHandler *handler, int pageIndex)
@@ -658,8 +653,6 @@ QVector<QRectF> DPdfPage::search(const QString &text, bool matchCase, bool whole
 
 QList<DPdfAnnot *> DPdfPage::annots()
 {
-    d_func()->loadAnnots();
-
     QList<DPdfAnnot *> annots;
 
     foreach (DPdfAnnot *annot, d_func()->m_dAnnots) {
@@ -674,8 +667,6 @@ QList<DPdfAnnot *> DPdfPage::annots()
 
 QList<DPdfAnnot *> DPdfPage::links()
 {
-    d_func()->loadAnnots();
-
     QList<DPdfAnnot *> links;
 
     foreach (DPdfAnnot *annot, d_func()->m_dAnnots) {
