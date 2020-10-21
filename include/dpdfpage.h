@@ -18,19 +18,6 @@ class DEEPIN_PDFIUM_EXPORT DPdfPage : public QObject
     friend class DPdfDoc;
 
 public:
-    struct Link {
-        int nIndex = -1;
-        qreal left = 0.0;
-        qreal top = 0.0;
-        QString urlpath;
-
-        bool isValid()
-        {
-            return nIndex >= 0 || !urlpath.isEmpty();
-        }
-    };
-
-public:
     ~DPdfPage();
 
     /**
@@ -100,12 +87,6 @@ public:
      * @return
      */
     QString text(int start, int charCount = 1);
-
-    /**
-     * @brief 获取位置所在Link
-     * @return
-     */
-    Link getLinkAtPoint(qreal x, qreal y);
 
     /**
      * @brief 添加文字注释

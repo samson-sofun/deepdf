@@ -98,11 +98,21 @@ public:
 
     void setUrl(QString url);
 
+    QString url() const;
+
     void setFilePath(QString filePath);
+
+    QString filePath() const;
 
     void setPage(int index, float left, float top);
 
+    int pageIndex() const;
+
+    QPointF offset() const;
+
     void setLinkType(int type);
+
+    int linkType() const;
 
 private:
     QRectF m_rect;

@@ -214,7 +214,7 @@ void DPdfPagePrivate::loadAnnots()
 
             //获取位置
             FS_RECTF rectF;
-            if (FPDFAnnot_GetRect(annot, &rectF)) {//注释图标为20x20
+            if (FPDFAnnot_GetRect(annot, &rectF)) {
                 QRectF annorectF(static_cast<qreal>(rectF.left),
                                  pageHeight - static_cast<qreal>(rectF.top),
                                  static_cast<qreal>(rectF.right) - static_cast<qreal>(rectF.left),
@@ -433,39 +433,6 @@ QString DPdfPage::text(int start, int charCount)
 
     auto text = reinterpret_cast<CPDF_TextPage *>(d_func()->m_textPage)->GetPageText(start, charCount);
     return QString::fromWCharArray(text.c_str(), text.GetLength());
-}
-
-DPdfPage::Link DPdfPage::getLinkAtPoint(qreal x, qreal y)
-{
-    d_func()->loadPage();
-
-    Link link;
-    const FPDF_LINK &flink = FPDFLink_GetLinkAtPoint(d_func()->m_page, x, height() - y);
-    CPDF_Link cLink(reinterpret_cast<CPDF_Dictionary *>(flink));
-    if (cLink.GetDict() == nullptr)
-        return link;
-
-    CPDF_Document *pDoc = reinterpret_cast<CPDF_Document *>(d_func()->m_doc);
-    const CPDF_Action &cAction = cLink.GetAction();
-    const CPDF_Dest &dest = cAction.GetDest(pDoc);
-
-    bool hasx = false, hasy = false, haszoom = false;
-    float offsetx = 0.0, offsety = 0.0, z = 0.0;
-    dest.GetXYZ(&hasx, &hasy, &haszoom, &offsetx, &offsety, &z);
-    link.left = offsetx;
-    link.top = offsety;
-
-    link.nIndex = dest.GetDestPageIndex(pDoc);
-    if (cAction.GetType() == CPDF_Action::URI) {
-        const ByteString &bUrl = cAction.GetURI(pDoc);
-        link.urlpath = QString::fromUtf8(bUrl.c_str(), bUrl.GetLength());
-        if (!link.urlpath.contains("http://") && !link.urlpath.contains("https://"))
-            link.urlpath.prepend("http://");
-    } else {
-        const WideString &wFilepath = cAction.GetFilePath();
-        link.urlpath = QString::fromWCharArray(wFilepath.c_str(), wFilepath.GetLength());
-    }
-    return link;
 }
 
 DPdfAnnot *DPdfPage::createTextAnnot(QPointF point, QString text)
