@@ -164,6 +164,12 @@ public:
      */
     QList<DPdfAnnot *> annots();
 
+    /**
+     * @brief 获取当前支持操作的所有链接
+     * @return
+     */
+    QList<DPdfAnnot *> links();
+
 signals:
     /**
      * @brief 添加注释时触发 ，在需要的时候可以重新获取annotations()
