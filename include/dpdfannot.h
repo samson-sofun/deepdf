@@ -94,7 +94,7 @@ public:
 
     QList<QRectF> boundaries() override;
 
-    void setRectF(const QRectF &rectf);
+    void setRectF(const QRectF &rect);
 
     void setUrl(QString url);
 

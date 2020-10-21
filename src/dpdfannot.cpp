@@ -119,6 +119,11 @@ QList<QRectF> DPdfLinkAnnot::boundaries()
     return list;
 }
 
+void DPdfLinkAnnot::setRectF(const QRectF &rect)
+{
+    m_rect = rect;
+}
+
 void DPdfLinkAnnot::setUrl(QString url)
 {
     m_url = url;
