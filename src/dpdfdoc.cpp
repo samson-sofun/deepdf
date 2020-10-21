@@ -72,7 +72,7 @@ DPdfDocPrivate::DPdfDocPrivate()
 
 DPdfDocPrivate::~DPdfDocPrivate()
 {
-    m_pages.clear();
+    qDeleteAll(m_pages);
 
     if (nullptr != m_docHandler)
         FPDF_CloseDocument((FPDF_DOCUMENT)m_docHandler);
