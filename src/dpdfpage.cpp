@@ -63,6 +63,8 @@ DPdfPagePrivate::~DPdfPagePrivate()
 
     if (m_page)
         FPDF_ClosePage(m_page);
+
+    qDeleteAll(m_dAnnots);
 }
 
 void DPdfPagePrivate::loadPage()
