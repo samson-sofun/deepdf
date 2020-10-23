@@ -6,6 +6,7 @@
 #include "public/fpdf_text.h"
 #include "public/fpdf_annot.h"
 #include "public/fpdf_doc.h"
+#include "public/fpdf_edit.h"
 
 #include "core/fpdfapi/page/cpdf_page.h"
 #include "core/fpdftext/cpdf_textpage.h"
@@ -27,6 +28,9 @@ public:
     void loadTextPage();
 
 private:
+    /**
+     * @brief 加载注释,无需初始化，注释的坐标取值不受页自身旋转影响
+     */
     void loadAnnots();
 
 private:
@@ -34,7 +38,7 @@ private:
 
     int m_index = -1;
 
-    double m_width = 0;
+    qreal m_width = 0;
 
     qreal m_height = 0;
 
@@ -51,6 +55,7 @@ DPdfPagePrivate::DPdfPagePrivate(DPdfDocHandler *handler, int index)
 
     m_index = index;
 
+    //宽高会受自身旋转值影响
     FPDF_GetPageSizeByIndex(m_doc, index, &m_width, &m_height);
 
     loadAnnots();
@@ -69,8 +74,9 @@ DPdfPagePrivate::~DPdfPagePrivate()
 
 void DPdfPagePrivate::loadPage()
 {
-    if (nullptr == m_page)
+    if (nullptr == m_page) {
         m_page = FPDF_LoadPage(m_doc, m_index);
+    }
 }
 
 void DPdfPagePrivate::loadTextPage()
@@ -85,6 +91,8 @@ void DPdfPagePrivate::loadAnnots()
 {
     //使用临时page，不完全加载,防止刚开始消耗时间过长
     FPDF_PAGE page = FPDF_LoadNoParsePage(m_doc, m_index);
+
+    int rotation = FPDFPage_GetRotation(m_page);
 
     //获取当前注释
     int annotCount = FPDFPage_GetAnnotCount(page);
@@ -126,21 +134,22 @@ void DPdfPagePrivate::loadAnnots()
 //    |            |      |              |
 //    |----------------------------------|
 
-        qreal pageHeight = m_height;
+        qreal actualHeight = rotation % 2 == 0 ? m_height : m_width;
+
         if (DPdfAnnot::AText == type) {
             DPdfTextAnnot *dAnnot = new DPdfTextAnnot;
 
             //获取位置
             FS_RECTF rectF;
             if (FPDFAnnot_GetRect(annot, &rectF)) {//注释图标为20x20
-                QRectF annorectF(static_cast<qreal>(rectF.left), pageHeight - static_cast<qreal>(rectF.top), 20, 20);
+                QRectF annorectF(static_cast<qreal>(rectF.left), actualHeight - static_cast<qreal>(rectF.top), 20, 20);
                 dAnnot->setRectF(annorectF);
 
                 FS_RECTF newrectf;
                 newrectf.left = static_cast<float>(annorectF.left());
-                newrectf.top = static_cast<float>(pageHeight - annorectF.top());
+                newrectf.top = static_cast<float>(actualHeight - annorectF.top());
                 newrectf.right = static_cast<float>(annorectF.right());
-                newrectf.bottom = static_cast<float>(pageHeight - annorectF.bottom());
+                newrectf.bottom = static_cast<float>(actualHeight - annorectF.bottom());
                 FPDFAnnot_SetRect(annot, &newrectf);
             }
 
@@ -153,7 +162,7 @@ void DPdfPagePrivate::loadAnnots()
 
                 QRectF rectF;
                 rectF.setX(static_cast<double>(quad.x1));
-                rectF.setY(pageHeight - static_cast<double>(quad.y1));
+                rectF.setY(actualHeight - static_cast<double>(quad.y1));
                 rectF.setWidth(static_cast<double>(quad.x2 - quad.x1));
                 rectF.setHeight(static_cast<double>(quad.y1 - quad.y3));
                 list.append(rectF);
@@ -186,7 +195,7 @@ void DPdfPagePrivate::loadAnnots()
 
                 QRectF rectF;
                 rectF.setX(static_cast<double>(quad.x1));
-                rectF.setY(pageHeight - static_cast<double>(quad.y1));
+                rectF.setY(actualHeight - static_cast<double>(quad.y1));
                 rectF.setWidth(static_cast<double>(quad.x2 - quad.x1));
                 rectF.setHeight(static_cast<double>(quad.y1 - quad.y3));
 
@@ -213,7 +222,7 @@ void DPdfPagePrivate::loadAnnots()
             FS_RECTF rectF;
             if (FPDFAnnot_GetRect(annot, &rectF)) {
                 QRectF annorectF(static_cast<qreal>(rectF.left),
-                                 pageHeight - static_cast<qreal>(rectF.top),
+                                 actualHeight - static_cast<qreal>(rectF.top),
                                  static_cast<qreal>(rectF.right) - static_cast<qreal>(rectF.left),
                                  static_cast<qreal>(rectF.top) - static_cast<qreal>(rectF.bottom));
                 dAnnot->setRectF(annorectF);
