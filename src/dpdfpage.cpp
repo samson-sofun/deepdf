@@ -11,6 +11,7 @@
 #include "core/fpdfapi/page/cpdf_page.h"
 #include "core/fpdftext/cpdf_textpage.h"
 #include "core/fpdfdoc/cpdf_linklist.h"
+#include "fpdfsdk/cpdfsdk_helpers.h"
 
 #include <QDebug>
 
@@ -27,11 +28,33 @@ public:
 
     void loadTextPage();
 
+    /**
+     * @brief 文档自身旋转
+     * @return
+     */
+    int oriRotation();
+
 private:
     /**
      * @brief 加载注释,无需初始化，注释的坐标取值不受页自身旋转影响
      */
     void loadAnnots();
+
+    /**
+     * @brief 视图坐标转化为文档坐标
+     * @param rotation 文档自身旋转
+     * @param rect
+     * @return
+     */
+    FS_RECTF transRect(const int &rotation, const QRectF &rect);
+
+    /**
+     * @brief 文档坐标转化视图坐标
+     * @param rotation 文档自身旋转
+     * @param rect
+     * @return
+     */
+    QRectF transRect(const int &rotation, const FS_RECTF &rect);
 
 private:
     FPDF_DOCUMENT m_doc = nullptr;
@@ -87,12 +110,32 @@ void DPdfPagePrivate::loadTextPage()
         m_textPage = FPDFText_LoadPage(m_page);
 }
 
+int DPdfPagePrivate::oriRotation()
+{
+    if (nullptr == m_page) {
+        FPDF_PAGE page = FPDF_LoadNoParsePage(m_doc, m_index);
+
+        CPDF_Page *pPage = CPDFPageFromFPDFPage(page);
+
+        int rotation = pPage->GetPageRotation();
+
+        FPDF_ClosePage(page);
+
+        return rotation;
+    }
+
+    return FPDFPage_GetRotation(m_page);
+
+}
+
 void DPdfPagePrivate::loadAnnots()
 {
     //使用临时page，不完全加载,防止刚开始消耗时间过长
     FPDF_PAGE page = FPDF_LoadNoParsePage(m_doc, m_index);
 
-    int rotation = FPDFPage_GetRotation(m_page);
+    CPDF_Page *pPage = CPDFPageFromFPDFPage(page);
+
+    int rotation = pPage->GetPageRotation();
 
     //获取当前注释
     int annotCount = FPDFPage_GetAnnotCount(page);
@@ -111,61 +154,23 @@ void DPdfPagePrivate::loadAnnots()
         else if (FPDF_ANNOT_LINK == subType)
             type = DPdfAnnot::ALink;
 
-//        @@@@@@@@  "Border"
-//        @@@@@@@@  "C"
-//        @@@@@@@@  "CA"
-//        @@@@@@@@  "Contents"
-//        @@@@@@@@  "F"
-//        @@@@@@@@  "M"
-//        @@@@@@@@  "NM"
-//        @@@@@@@@  "P"
-//        @@@@@@@@  "Rect"
-//        @@@@@@@@  "Subtype"
-//        @@@@@@@@  "T"
-//        @@@@@@@@  "Type"
-
-//    |----------------------------------|
-//    |--------right-------              |
-//    |                                  |
-//    |----left----........              |
-//    |            |.     .              |
-//    |            |. . . .              |
-//    |           top     |bottom        |
-//    |            |      |              |
-//    |----------------------------------|
-
-        qreal actualHeight = rotation % 2 == 0 ? m_height : m_width;
-
+        //取出的rect为基于自身旋转前，现将转成基于旋转后的 m_width/m_height 为受旋转影响后的宽高
+        qreal actualHeight = (rotation % 2 == 0) ? m_height : m_width;
         if (DPdfAnnot::AText == type) {
             DPdfTextAnnot *dAnnot = new DPdfTextAnnot;
 
             //获取位置
             FS_RECTF rectF;
-            if (FPDFAnnot_GetRect(annot, &rectF)) {//注释图标为20x20
-                QRectF annorectF(static_cast<qreal>(rectF.left), actualHeight - static_cast<qreal>(rectF.top), 20, 20);
+            if (FPDFAnnot_GetRect(annot, &rectF)) { //注释图标默认为20x20
+                QRectF annorectF = transRect(rotation, rectF);
                 dAnnot->setRectF(annorectF);
 
-                FS_RECTF newrectf;
-                newrectf.left = static_cast<float>(annorectF.left());
-                newrectf.top = static_cast<float>(actualHeight - annorectF.top());
-                newrectf.right = static_cast<float>(annorectF.right());
-                newrectf.bottom = static_cast<float>(actualHeight - annorectF.bottom());
-                FPDFAnnot_SetRect(annot, &newrectf);
-            }
-
-            ulong quadCount = FPDFAnnot_CountAttachmentPoints(annot);
-            QList<QRectF> list;
-            for (ulong i = 0; i < quadCount; ++i) {
-                FS_QUADPOINTSF quad;
-                if (!FPDFAnnot_GetAttachmentPoints(annot, i, &quad))
-                    continue;
-
-                QRectF rectF;
-                rectF.setX(static_cast<double>(quad.x1));
-                rectF.setY(actualHeight - static_cast<double>(quad.y1));
-                rectF.setWidth(static_cast<double>(quad.x2 - quad.x1));
-                rectF.setHeight(static_cast<double>(quad.y1 - quad.y3));
-                list.append(rectF);
+//                FS_RECTF newrectf;
+//                newrectf.left = static_cast<float>(annorectF.left());
+//                newrectf.top = static_cast<float>(actualHeight - annorectF.top());
+//                newrectf.right = static_cast<float>(annorectF.right());
+//                newrectf.bottom = static_cast<float>(actualHeight - annorectF.bottom());
+//                FPDFAnnot_SetRect(annot, &newrectf);
             }
 
             //获取文本
@@ -221,10 +226,7 @@ void DPdfPagePrivate::loadAnnots()
             //获取位置
             FS_RECTF rectF;
             if (FPDFAnnot_GetRect(annot, &rectF)) {
-                QRectF annorectF(static_cast<qreal>(rectF.left),
-                                 actualHeight - static_cast<qreal>(rectF.top),
-                                 static_cast<qreal>(rectF.right) - static_cast<qreal>(rectF.left),
-                                 static_cast<qreal>(rectF.top) - static_cast<qreal>(rectF.bottom));
+                QRectF annorectF = transRect(rotation, rectF);
                 dAnnot->setRectF(annorectF);
             }
 
@@ -276,6 +278,79 @@ void DPdfPagePrivate::loadAnnots()
     }
 
     FPDF_ClosePage(page);
+}
+
+FS_RECTF DPdfPagePrivate::transRect(const int &rotation, const QRectF &rect)
+{
+    qreal actualWidth  = (rotation % 2 == 0) ? m_width : m_height;
+    qreal actualHeight = (rotation % 2 == 0) ? m_height : m_width;
+
+    FS_RECTF fs_rect;
+
+    if (1 == rotation) {
+        fs_rect.left = rect.y();
+        fs_rect.top = rect.x() + rect.width();
+        fs_rect.right = rect.y() + rect.height();
+        fs_rect.bottom = rect.x();
+    } else if (2 == rotation) {
+        fs_rect.left = actualWidth - rect.x() - rect.width();
+        fs_rect.top = rect.y() + rect.height();
+        fs_rect.right = actualWidth - rect.x();
+        fs_rect.bottom = rect.y();
+    } else if (3 == rotation) {
+        fs_rect.left = actualHeight - rect.y() - rect.height();
+        fs_rect.top = actualWidth - rect.x();
+        fs_rect.right = actualHeight - rect.y();
+        fs_rect.bottom = actualWidth - rect.x() - rect.width();
+    } else {
+        fs_rect.left = rect.x();
+        fs_rect.top = actualHeight - rect.y();
+        fs_rect.right = rect.x() + rect.width();
+        fs_rect.bottom = actualHeight - rect.y() - rect.height();
+    }
+
+    return fs_rect;
+}
+
+QRectF DPdfPagePrivate::transRect(const int &rotation, const FS_RECTF &fs_rect)
+{
+//    qreal actualwidth  = (rotation % 2 == 0) ? m_width : m_height;
+//    qreal actualHeight = (rotation % 2 == 0) ? m_height : m_width;
+
+    //    rotation:0
+    //                 actualWidth
+    //    |----------------------------------|
+    //    |--------right-------              |
+    //    |                                  |
+    //    |----left----........              |
+    //    |            |      .          actualHeight
+    //    |            |. . . .              |
+    //    |           top     |bottom        |
+    //    |            |      |              |
+    //   圆心---------------------------------|
+
+    if (1 == rotation) {    //90
+        return QRectF(static_cast<qreal>(fs_rect.bottom),
+                      static_cast<qreal>(fs_rect.left),
+                      static_cast<qreal>(fs_rect.top) - static_cast<qreal>(fs_rect.bottom),
+                      static_cast<qreal>(fs_rect.right) - static_cast<qreal>(fs_rect.left));
+    } else if (2 == rotation) { //180
+        return QRectF(m_width - static_cast<qreal>(fs_rect.right),
+                      static_cast<qreal>(fs_rect.bottom),
+                      static_cast<qreal>(fs_rect.right) - static_cast<qreal>(fs_rect.left),
+                      static_cast<qreal>(fs_rect.top) - static_cast<qreal>(fs_rect.bottom));
+
+    } else if (3 == rotation) { //270
+        return QRectF(m_height - static_cast<qreal>(fs_rect.top),
+                      m_width - static_cast<qreal>(fs_rect.right),
+                      static_cast<qreal>(fs_rect.top) - static_cast<qreal>(fs_rect.bottom),
+                      static_cast<qreal>(fs_rect.right) - static_cast<qreal>(fs_rect.left));
+    }
+
+    return QRectF(static_cast<qreal>(fs_rect.left),
+                  m_height - static_cast<qreal>(fs_rect.top),
+                  static_cast<qreal>(fs_rect.right) - static_cast<qreal>(fs_rect.left),
+                  static_cast<qreal>(fs_rect.top) - static_cast<qreal>(fs_rect.bottom));
 }
 
 DPdfPage::DPdfPage(DPdfDocHandler *handler, int pageIndex)
@@ -452,13 +527,9 @@ DPdfAnnot *DPdfPage::createTextAnnot(QPointF point, QString text)
         return nullptr;
     }
 
-    FS_RECTF rectF;
-    rectF.left = static_cast<float>(point.x() - 10);
-    rectF.top = static_cast<float>(height() - point.y() + 10);
-    rectF.right = static_cast<float>(point.x() + 10);
-    rectF.bottom = static_cast<float>(rectF.top - 20);
+    FS_RECTF fs_rect = d_func()->transRect(d_func()->oriRotation(), QRectF(point.x() - 10, point.y() - 10, 20, 20));
 
-    if (!FPDFAnnot_SetRect(annot, &rectF)) {
+    if (!FPDFAnnot_SetRect(annot, &fs_rect)) {
         FPDFPage_CloseAnnot(annot);
         return nullptr;
     }
@@ -498,13 +569,9 @@ bool DPdfPage::updateTextAnnot(DPdfAnnot *dAnnot, QString text, QPointF point)
     textAnnot->setText(text);
 
     if (!point.isNull()) {
-        FS_RECTF rectF;
-        rectF.left   = static_cast<float>(point.x() - 10);
-        rectF.top    =  static_cast<float>(height() - point.y() + 10);
-        rectF.right  = static_cast<float>(point.x() + 10);
-        rectF.bottom = static_cast<float>(rectF.top - 20);
+        FS_RECTF fs_rect = d_func()->transRect(d_func()->oriRotation(), QRectF(point.x() - 10, point.y() - 10, 20, 20));
 
-        if (!FPDFAnnot_SetRect(annot, &rectF)) {
+        if (!FPDFAnnot_SetRect(annot, &fs_rect)) {
             FPDFPage_CloseAnnot(annot);
             return false;
         }
