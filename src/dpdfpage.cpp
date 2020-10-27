@@ -729,16 +729,16 @@ QVector<QRectF> DPdfPage::search(const QString &text, bool matchCase, bool whole
 
 QList<DPdfAnnot *> DPdfPage::annots()
 {
-    QList<DPdfAnnot *> annots;
+    QList<DPdfAnnot *> dannots;
 
-    foreach (DPdfAnnot *annot, d_func()->m_dAnnots) {
-        if (annot->type() == DPdfAnnot::AText || annot->type() == DPdfAnnot::AHighlight) {
-            annots.append(annot);
+    foreach (DPdfAnnot *dannot, d_func()->m_dAnnots) {
+        if (dannot->type() == DPdfAnnot::AText || dannot->type() == DPdfAnnot::AHighlight) {
+            dannots.append(dannot);
             continue;
         }
     }
 
-    return annots;
+    return dannots;
 }
 
 QList<DPdfAnnot *> DPdfPage::links()
