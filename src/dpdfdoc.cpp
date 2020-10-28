@@ -169,7 +169,7 @@ bool DPdfDoc::save()
 
     saveWriter.setFileName(tempFilePath);
 
-    if (!saveWriter.open(QIODevice::ReadWrite))
+    if (!saveWriter.open(QIODevice::WriteOnly))
         return false;
 
     bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(d_func()->m_docHandler), &write, FPDF_NO_INCREMENTAL);
@@ -187,7 +187,7 @@ bool DPdfDoc::save()
 
     QFile file(d_func()->m_filePath);
 
-    file.remove();          //不remove会出现第二次导出丢失数据问题
+    file.remove();          //不remove会出现第二次导出丢失数据问题 (保存动作完成之后，如果当前文档是当初打开那个，下一次导出会出错)
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
         return false;
