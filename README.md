@@ -5,7 +5,7 @@ deepin-pdfium is a pdf rendering library based on Qt and PDFium.
 It has been verified under several CPU architectures, such as x86 / x64 / MIPS / arm, which can cross system platforms, but only Linux Debian version has been made.
 
 ### Installation
-To use the library you must first install it in the same location as your Qt installation. Here is an example on Linux/Mac:
+You can install it into the system for easy use. Here is an example on Linux/Mac:
 
 ```sh
 git clone <url>

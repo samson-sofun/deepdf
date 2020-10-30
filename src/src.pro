@@ -26,11 +26,8 @@ SOURCES += \
 
 target.path  = /usr/lib
 
-header_files.target = header_files
-
 header_files.path = /usr/include
 
-header_files.files = $$public_headers \
-                     $$PWD/../include/deepin-pdfium
+header_files.files = $$public_headers
 
 INSTALLS += target header_files
