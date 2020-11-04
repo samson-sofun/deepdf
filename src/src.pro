@@ -1,5 +1,7 @@
 TARGET = $$PWD/../lib/dpdf
 
+VERSION = 1.0.0.0
+
 TEMPLATE = lib
 
 CONFIG += c++14
