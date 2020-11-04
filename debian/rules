@@ -1,9 +1,9 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-export QT_SELECT=5
-
-export LD_LIBRARY_PATH=/usr/lib/
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+export QT_SELECT := 5
 
 %:
 	dh $@

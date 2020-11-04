@@ -16,7 +16,11 @@ sudo make install
 ```
 
 ### Usage
-Copy the public header files into your project and link libdpdf.so
+Copy the public header files into your project and link so files like:
+
+```sh
+LIBS += -lopenjp2 -llcms2 -lfreetype -ldpdf
+```
 
 It's easy to use, for example, to open a document called 1.PDF and get the first page image
 
