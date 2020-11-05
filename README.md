@@ -19,7 +19,7 @@ sudo make install
 Copy the public header files into your project and link so files like:
 
 ```sh
-LIBS += -lopenjp2 -llcms2 -lfreetype -ldpdf
+LIBS += -lopenjp2 -llcms2 -lfreetype -ldeepin-pdfium
 ```
 
 It's easy to use, for example, to open a document called 1.PDF and get the first page image
