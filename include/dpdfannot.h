@@ -15,7 +15,8 @@ public:
         AUnknown = 0,         ///< 前期支持以外的
         AText = 1,            ///< TextAnnotation
         AHighlight = 2,       ///< HighlightAnnotation
-        ALink = 3
+        ALink = 3,
+        ASQUARE = 5
     };
 
     virtual ~DPdfAnnot();
@@ -45,6 +46,21 @@ class DEEPIN_PDFIUM_EXPORT DPdfTextAnnot : public DPdfAnnot
     friend class DPdfPagePrivate;
 public:
     DPdfTextAnnot();
+
+    bool pointIn(QPointF pos) override;
+
+    QList<QRectF> boundaries() override;
+
+    void setRectF(const QRectF &rectf);
+
+private:
+    QRectF m_rect;
+};
+
+class DEEPIN_PDFIUM_EXPORT DPdfSquareAnnot : public DPdfAnnot
+{
+public:
+    DPdfSquareAnnot();
 
     bool pointIn(QPointF pos) override;
 
