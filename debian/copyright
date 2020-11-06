@@ -1,9 +1,9 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: deepin-pdfium
-Source: https://gitee.com/pigzhang/deepin-pdfium
+Upstream-Name: deepdf
+Source: https://gitee.com/pigzhang/deepdf
 
 Files: *
-Copyright: 2020-2021 zhangsong <zhangsong@uniontech.com>
+Copyright: 2020-2021 deepdf <9959847@qq.com>
 License: GPL-3+
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by

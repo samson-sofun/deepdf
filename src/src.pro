@@ -1,4 +1,4 @@
-TARGET = $$PWD/../lib/deepin-pdfium
+TARGET = $$PWD/../lib/deepdf
 
 VERSION = 1.0.0.0
 

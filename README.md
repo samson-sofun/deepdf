@@ -1,6 +1,6 @@
-# deepin-pdfium
+# deepdf
 
-deepin-pdfium is a pdf rendering library based on Qt and PDFium.
+deepdf is a pdf rendering library based on Qt and PDFium.
 
 It has been verified under several CPU architectures, such as x86 / x64 / MIPS / arm, which can cross system platforms, but only Linux Debian version has been made.
 
@@ -9,7 +9,7 @@ You can install it into the system for easy use. Here is an example on Linux/Mac
 
 ```sh
 git clone <url>
-cd deepin-pdfium
+cd deepdf
 qmake
 make
 sudo make install
@@ -19,7 +19,7 @@ sudo make install
 Copy the public header files into your project and link so files like:
 
 ```sh
-LIBS += -lopenjp2 -llcms2 -lfreetype -ldeepin-pdfium
+LIBS += -lopenjp2 -llcms2 -lfreetype -ldeepdf
 ```
 
 It's easy to use, for example, to open a document called 1.PDF and get the first page image

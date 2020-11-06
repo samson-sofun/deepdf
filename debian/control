@@ -1,22 +1,22 @@
-Source: deepin-pdfium
+Source: deepdf
 Section: libs
 Priority: optional
-Maintainer: deepin <packages@deepin.com>
+Maintainer: deepdf <9959847@qq.com>
 Build-Depends: debhelper (>= 11), qtbase5-dev,qtchooser, libjpeg-dev, libicu-dev, libpng-dev,liblcms2-dev,libopenjp2-7-dev,libfreetype6-dev
 Standards-Version: 1.0.0
 Homepage: http://www.uniontech.com
 
-Package: libdeepin-pdfium
+Package: libdeepdf
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, qtbase5-dev,qtchooser, libjpeg-dev, libicu-dev, libpng-dev,liblcms2-dev,libopenjp2-7-dev,libfreetype6-dev
 Description: PDF rendering library based on Qt and PDFium.
  This package includes the pdf rending library.
 
-Package: libdeepin-pdfium-dev
+Package: libdeepdf-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: libdeepin-pdfium (= ${binary:Version}), ${misc:Depends}
+Depends: libdeepdf (= ${binary:Version}), ${misc:Depends}
 Description: PDF rendering library based on Qt and PDFium.
  This package includes the development headers for the pdf rending library.
