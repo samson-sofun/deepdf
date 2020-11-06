@@ -25,8 +25,8 @@ LIBS += -lopenjp2 -llcms2 -lfreetype -ldeepin-pdfium
 It's easy to use, for example, to open a document called 1.PDF and get the first page image
 
 ```sh
-DPdfium *document = new DPdfium("1.pdf");
-DPdfiumPage *page = document->page(0);
+DPdfDoc *doc = new DPdfdoc("1.pdf");
+DPdfPage *page = doc->page(0);
 QImage image = page->image();
 ```
 
