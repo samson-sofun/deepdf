@@ -6,6 +6,8 @@ TEMPLATE = lib
 
 CONFIG += c++14
 
+DEFINES += BUILD_DEEPDF_LIB
+
 QT = core-private core gui
 
 include($$PWD/3rdparty/pdfium/pdfium.pri)

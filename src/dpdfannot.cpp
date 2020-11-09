@@ -51,6 +51,11 @@ bool DPdfSquareAnnot::pointIn(QPointF pos)
     return m_rect.contains(pos);
 }
 
+QList<QRectF> DPdfSquareAnnot::boundaries()
+{
+    return QList<QRectF>() << m_rect;
+}
+
 void DPdfSquareAnnot::setRectF(const QRectF &rectf)
 {
     m_rect = rectf;
