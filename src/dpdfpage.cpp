@@ -99,6 +99,7 @@ DPdfPagePrivate::~DPdfPagePrivate()
 void DPdfPagePrivate::loadPage()
 {
     if (nullptr == m_page) {
+        DPdfMutexLocker locker;//即使其他文档的page在加载时，多线程调用此函数也会崩溃，非常线程不安全,此处需要加锁
         m_page = FPDF_LoadPage(m_doc, m_index);
     }
 }
@@ -107,8 +108,10 @@ void DPdfPagePrivate::loadTextPage()
 {
     loadPage();
 
-    if (nullptr == m_textPage)
+    if (nullptr == m_textPage) {
+        DPdfMutexLocker locker;
         m_textPage = FPDFText_LoadPage(m_page);
+    }
 }
 
 int DPdfPagePrivate::oriRotation()
@@ -126,13 +129,15 @@ int DPdfPagePrivate::oriRotation()
     }
 
     return FPDFPage_GetRotation(m_page);
-
 }
 
 bool DPdfPagePrivate::loadAnnots()
 {
     //使用临时page，不完全加载,防止刚开始消耗时间过长
-    FPDF_PAGE page = FPDF_LoadNoParsePage(m_doc, m_index);
+    FPDF_PAGE page = m_page;
+
+    if (page == nullptr)
+        page = FPDF_LoadNoParsePage(m_doc, m_index);      //不调用ParseContent，目前观察不会导致多线程崩溃
 
     if (nullptr == page) {
         return false;
@@ -401,12 +406,14 @@ QImage DPdfPage::image(int width, int height, QRect slice)
 
     d_func()->loadPage();
 
-    QImage image(slice.width(), slice.height(), QImage::Format_RGBA8888);
+    QImage image(slice.width(), slice.height(), QImage::Format_ARGB32);
 
     if (image.isNull())
         return QImage();
 
     image.fill(0xFFFFFFFF);
+
+    DPdfMutexLocker locker;
 
     FPDF_BITMAP bitmap = FPDFBitmap_CreateEx(image.width(), image.height(), FPDFBitmap_BGRA, image.scanLine(0), image.bytesPerLine());
 

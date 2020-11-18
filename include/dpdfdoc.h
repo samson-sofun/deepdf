@@ -108,13 +108,6 @@ public:
     QString label(int index) const;
 
     /**
-     * @brief 获取页面大小
-     * @param index
-     * @return
-     */
-    QSizeF pageSizeF(int index) const;
-
-    /**
      * @brief 保存到当前文件
      * @return
      */

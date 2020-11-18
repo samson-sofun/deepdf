@@ -71,6 +71,8 @@ DPdfDocPrivate::DPdfDocPrivate()
 
 DPdfDocPrivate::~DPdfDocPrivate()
 {
+    DPdfMutexLocker locker;
+
     qDeleteAll(m_pages);
 
     if (nullptr != m_docHandler)
@@ -243,15 +245,6 @@ DPdfPage *DPdfDoc::page(int i)
     }
 
     return d_func()->m_pages[i];
-}
-
-QSizeF DPdfDoc::pageSizeF(int index) const
-{
-    double width = 0;
-    double height = 0;
-
-    FPDF_GetPageSizeByIndex((FPDF_DOCUMENT)d_func()->m_docHandler, index, &width, &height);
-    return QSizeF(width, height);
 }
 
 void collectBookmarks(DPdfDoc::Outline &outline, const CPDF_BookmarkTree &tree, CPDF_Bookmark This)
