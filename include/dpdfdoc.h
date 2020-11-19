@@ -75,11 +75,11 @@ public:
     Status status() const;
 
     /**
-     * @brief 返回指定PAGE
+     * @brief 创建新的page返回
      * @param i
      * @return
      */
-    DPdfPage *page(int i);
+    DPdfPage *page(int i, qreal xRes, qreal yRes);
 
     /**
      * @brief 目录

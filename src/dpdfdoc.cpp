@@ -235,13 +235,13 @@ DPdfDoc::Status DPdfDoc::status() const
     return d_func()->m_status;
 }
 
-DPdfPage *DPdfDoc::page(int i)
+DPdfPage *DPdfDoc::page(int i, qreal xRes, qreal yRes)
 {
     if (i < 0 || i >= d_func()->m_pageCount)
         return nullptr;
 
     if (!d_func()->m_pages[i]) {
-        d_func()->m_pages[i] = new DPdfPage(d_func()->m_docHandler, i);
+        d_func()->m_pages[i] = new DPdfPage(d_func()->m_docHandler, i, xRes, yRes);
     }
 
     return d_func()->m_pages[i];
