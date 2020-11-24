@@ -53,6 +53,7 @@ public:
     {
         return y * m_yRes / 72;
     }
+
     QRectF transPixelToPoint(const QRectF &rect) const
     {
         return QRectF(rect.x() * 72 / m_xRes, rect.y() * 72 / m_yRes, rect.width() * 72 / m_xRes, rect.height() * 72 / m_yRes);
