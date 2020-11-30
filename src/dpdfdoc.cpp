@@ -81,6 +81,8 @@ DPdfDocPrivate::~DPdfDocPrivate()
 
 DPdfDoc::Status DPdfDocPrivate::loadFile(const QString &filePath, const QString &password)
 {
+    DPdfMutexLocker locker;
+
     m_filePath = filePath;
 
     m_pages.clear();
@@ -132,6 +134,8 @@ bool DPdfDoc::isEncrypted() const
 
 DPdfDoc::Status DPdfDoc::tryLoadFile(const QString &filename, const QString &password)
 {
+    DPdfMutexLocker locker;
+
     Status status = NOT_LOADED;
     if (!QFile::exists(filename)) {
         status = FILE_NOT_FOUND_ERROR;
@@ -289,6 +293,8 @@ DPdfDoc::Outline DPdfDoc::outline(qreal xRes, qreal yRes)
 
 DPdfDoc::Properies DPdfDoc::proeries()
 {
+    DPdfMutexLocker locker;
+
     Properies properies;
     int fileversion = 1;
     properies.insert("Version", "1");
