@@ -83,8 +83,6 @@ DPdfDocPrivate::~DPdfDocPrivate()
 
 DPdfDoc::Status DPdfDocPrivate::loadFile(const QString &filePath, const QString &password)
 {
-    DPdfMutexLocker locker;
-
     m_filePath = filePath;
 
     m_pages.clear();
@@ -93,6 +91,8 @@ DPdfDoc::Status DPdfDocPrivate::loadFile(const QString &filePath, const QString 
         m_status = DPdfDoc::FILE_NOT_FOUND_ERROR;
         return m_status;
     }
+
+    DPdfMutexLocker locker;
 
     void *ptr = FPDF_LoadDocument(m_filePath.toUtf8().constData(),
                                   password.toUtf8().constData());
@@ -136,13 +136,13 @@ bool DPdfDoc::isEncrypted() const
 
 DPdfDoc::Status DPdfDoc::tryLoadFile(const QString &filename, const QString &password)
 {
-    DPdfMutexLocker locker;
-
     Status status = NOT_LOADED;
     if (!QFile::exists(filename)) {
         status = FILE_NOT_FOUND_ERROR;
         return status;
     }
+
+    DPdfMutexLocker locker;
 
     void *ptr = FPDF_LoadDocument(filename.toUtf8().constData(),
                                   password.toUtf8().constData());
@@ -339,6 +339,8 @@ DPdfDoc::Properies DPdfDoc::proeries()
 
 QString DPdfDoc::label(int index) const
 {
+    DPdfMutexLocker locker;
+
     CPDF_PageLabel label(reinterpret_cast<CPDF_Document *>(d_func()->m_docHandler));
     const Optional<WideString> &str = label.GetLabel(index);
     if (str.has_value())
