@@ -8,7 +8,9 @@ CONFIG += c++14
 
 DEFINES += BUILD_DEEPDF_LIB
 
-QT = core-private core gui
+QT += core-private core gui
+
+QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
 
 include($$PWD/3rdparty/pdfium/pdfium.pri)
 
