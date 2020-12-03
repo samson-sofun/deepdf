@@ -14,8 +14,6 @@
 #include <QFile>
 #include <QTemporaryDir>
 #include <QUuid>
-#include <chardet.h>
-#include <version.h>
 
 DPdfDoc::Status parseError(int error)
 {
@@ -131,6 +129,8 @@ bool DPdfDoc::isEncrypted() const
     if (!isValid())
         return false;
 
+    DPdfMutexLocker locker;
+
     return FPDF_GetDocPermissions(reinterpret_cast<FPDF_DOCUMENT>(d_func()->m_docHandler)) != 0xFFFFFFFF;
 }
 
@@ -180,7 +180,9 @@ bool DPdfDoc::save()
     if (!saveWriter.open(QIODevice::WriteOnly))
         return false;
 
+    DPdfMutexLocker locker;
     bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(d_func()->m_docHandler), &write, FPDF_NO_INCREMENTAL);
+    locker.unlock();
 
     saveWriter.close();
 
@@ -219,7 +221,9 @@ bool DPdfDoc::saveAs(const QString &filePath)
     if (!saveWriter.open(QIODevice::ReadWrite))
         return false;
 
+    DPdfMutexLocker locker;
     bool result = FPDF_SaveAsCopy(reinterpret_cast<FPDF_DOCUMENT>(d_func()->m_docHandler), &write, FPDF_NO_INCREMENTAL);
+    locker.unlock();
 
     saveWriter.close();
 
@@ -283,6 +287,8 @@ void collectBookmarks(DPdfDoc::Outline &outline, const CPDF_BookmarkTree &tree, 
 
 DPdfDoc::Outline DPdfDoc::outline(qreal xRes, qreal yRes)
 {
+    DPdfMutexLocker locker;
+
     Outline outline;
     CPDF_BookmarkTree tree(reinterpret_cast<CPDF_Document *>(d_func()->m_docHandler));
     CPDF_Bookmark cBookmark;
@@ -318,9 +324,7 @@ DPdfDoc::Properies DPdfDoc::proeries()
 
         //windows和mac上生成的pdf此处编码格式不同,需要嗅探查找
         const ByteString &Title = pInfo->GetStringFor("Title");
-        DetectObj *obj = detect_obj_init();
-        detect(Title.c_str(), &obj);
-        if ("utf-8" == QString(obj->encoding).toLower()) {
+        if ("utf-8" == DPdfGlobal::textCodeType(Title.c_str())) {
             properies.insert("Title", QString::fromUtf8(Title.c_str()));
         } else {
             const WideString &WTitle = pInfo->GetUnicodeTextFor("Title");

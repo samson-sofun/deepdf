@@ -2,7 +2,7 @@ Source: deepdf
 Section: libs
 Priority: optional
 Maintainer: deepdf <9959847@qq.com>
-Build-Depends: debhelper (>= 11), qtbase5-dev,qtchooser, libjpeg-dev, libicu-dev, libpng-dev,liblcms2-dev,libopenjp2-7-dev,libfreetype6-dev
+Build-Depends: debhelper (>= 11), qtbase5-dev,qtchooser, libjpeg-dev, libicu-dev, libpng-dev,liblcms2-dev,libopenjp2-7-dev,libfreetype6-dev,libchardet-dev
 Standards-Version: 1.0.0
 Homepage: http://www.uniontech.com
 
