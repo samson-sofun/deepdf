@@ -57,5 +57,5 @@ DPdfMutexLocker::DPdfMutexLocker(const QString &tmpLog): QMutexLocker(pdfMutex()
 
 DPdfMutexLocker::~DPdfMutexLocker()
 {
-    //qInfo() << m_log + " end time = " << m_time.elapsed();
+//    qInfo() << m_log + " end time = " << m_time.elapsed();
 }
