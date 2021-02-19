@@ -1,8 +1,8 @@
 # deepdf
 
-deepdf is a pdf rendering library based on Qt and PDFium.
+deepdf is a pdf rendering library based on Qt and PDFium, which can cross system platforms.
 
-It has been verified under several CPU architectures, such as x86 / x64 / MIPS / arm, which can cross system platforms, but only Linux Debian version has been made.
+It has been verified under several CPU architectures, such as x86 / x64 / MIPS / arm.
 
 ### Installation
 You can install it into the system for easy use. Here is an example on Linux/Mac:
