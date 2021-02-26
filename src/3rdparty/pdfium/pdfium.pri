@@ -21,6 +21,7 @@ DEFINES +=  USE_SYSTEM_LIBJPEG \
             USE_SYSTEM_FREETYPE
 
 INCLUDEPATH += /usr/include/openjpeg-2.3 \
+               /usr/include/openjpeg-2.4 \
                /usr/include/freetype2 \
                /usr/include/freetype2/freetype \
                /usr/include/freetype2/freetype/config
